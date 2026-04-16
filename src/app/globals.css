@@ -1,26 +1,104 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --background: 210 20% 98%; /* Light gray background */
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+ 
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+ 
+    --primary: 221.2 83.2% 53.3%; /* Retail Blue */
+    --primary-foreground: 210 40% 98%;
+ 
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+ 
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+ 
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+ 
+    --destructive: 0 84.2% 60.2%; /* Retail Red */
+    --destructive-foreground: 210 40% 98%;
+
+    --success: 142.1 70.6% 45.3%; /* Retail Green/Emerald */
+    --success-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 221.2 83.2% 53.3%;
+ 
+    --radius: 1rem; /* Softer, modern corners */
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+@layer base {
+  * {
+    border-color: hsl(var(--border));
+  }
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    @apply antialiased;
+  }
+}
+
+@layer components {
+  .btn-retail {
+    @apply inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-bold transition-all active:scale-95;
+  }
+  
+  .card-retail {
+    @apply rounded-2xl border border-white/80 bg-white/90 shadow-sm backdrop-blur-sm;
+  }
+
+  .retail-table th {
+    @apply bg-secondary/50 p-3 text-left text-xs font-bold uppercase tracking-wider text-muted-foreground;
+  }
+
+  .retail-table td {
+    @apply p-3 border-b border-border/50 text-sm;
+  }
+}
+
+@media print {
+  body {
+    @apply bg-white p-0;
+  }
+  .no-print {
+    display: none !important;
+  }
+  .print-only {
+    display: block !important;
+  }
+  .card-retail {
+    @apply border-none shadow-none p-0 bg-transparent;
+  }
+  header, nav, aside, button, .flex.gap-2 {
+    display: none !important;
+  }
+  .printable-area {
+    display: block !important;
+    width: 100% !important;
+  }
+  table {
+    @apply w-full border-collapse !important;
+  }
+  th, td {
+    @apply border border-gray-300 p-2 text-[10px] !important;
+  }
+  .text-emerald-700, .text-emerald-900, .text-blue-700, .text-red-600 {
+    color: black !important;
+  }
+  .bg-emerald-50, .bg-blue-50, .bg-orange-50 {
+    background-color: transparent !important;
+    border: 1px solid #ccc !important;
+  }
 }
