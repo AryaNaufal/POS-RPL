@@ -7,3 +7,4 @@ export type StockOpnameItem = {
   adjustment_qty: number;
   created_at: string;
 };
+

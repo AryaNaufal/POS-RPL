@@ -23,7 +23,7 @@ export async function GET(request: Request) {
   const keyword = searchParams.get("keyword")?.trim();
   const isActive = searchParams.get("isActive");
 
-  const storeIds = await getAccessibleStoreIds(auth.session.userId, ["admin", "owner"]);
+  const storeIds = await getAccessibleStoreIds(auth.session.userId, ["admin"]);
   if (storeIds.length === 0) {
     return NextResponse.json({ data: [] });
   }
@@ -105,8 +105,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: createStoreError?.message ?? "Gagal membuat toko" }, { status: 400 });
   }
 
-  const ownerStoreIds = await getAccessibleStoreIds(auth.session.userId, ["owner"]).catch(() => []);
-  const roleCodeForCreator = ownerStoreIds.length > 0 ? "owner" : "admin";
+  const roleCodeForCreator = "admin";
 
   const { data: creatorRole, error: roleError } = await supabase
     .from("roles")
@@ -144,3 +143,4 @@ export async function POST(request: Request) {
 
   return NextResponse.json({ data: createdStore });
 }
+

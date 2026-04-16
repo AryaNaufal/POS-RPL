@@ -11,3 +11,4 @@ export type StockOpname = {
   created_at: string;
   updated_at: string;
 };
+

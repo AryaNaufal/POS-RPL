@@ -6,3 +6,4 @@ export type CreateCategoryInput = {
 };
 
 export type UpdateCategoryInput = Partial<CreateCategoryInput>;
+

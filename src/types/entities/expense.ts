@@ -8,3 +8,4 @@ export type Expense = {
   paid_by: string | null;
   created_at: string;
 };
+

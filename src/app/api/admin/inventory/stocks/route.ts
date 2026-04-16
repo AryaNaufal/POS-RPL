@@ -14,7 +14,7 @@ export async function GET(request: Request) {
   const keyword = searchParams.get("keyword")?.trim();
 
   const supabase = createServiceClient();
-  const storeIds = await getAccessibleStoreIds(auth.session.userId, ["admin", "owner"]);
+  const storeIds = await getAccessibleStoreIds(auth.session.userId, ["admin"]);
   if (storeIds.length === 0) {
     return NextResponse.json({ error: "Akses store tidak ditemukan" }, { status: 403 });
   }
@@ -52,3 +52,4 @@ export async function GET(request: Request) {
 
   return NextResponse.json({ data: filtered });
 }
+

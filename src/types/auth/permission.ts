@@ -1,5 +1,4 @@
 export const STORE_ROLE_MATRIX = {
-  owner: ["owner", "admin", "kasir"],
   admin: ["admin", "kasir"],
   kasir: ["kasir"],
 } as const;
@@ -10,3 +9,4 @@ export type Permission = {
   action: string;
   subject: string;
 };
+

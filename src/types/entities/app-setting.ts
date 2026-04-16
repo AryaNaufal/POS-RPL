@@ -3,3 +3,4 @@ export type AppSetting = {
   value: any;
   updated_at: string;
 };
+

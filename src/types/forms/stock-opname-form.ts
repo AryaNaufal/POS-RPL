@@ -9,3 +9,4 @@ export type CreateStockOpnameInput = {
   items: CreateStockOpnameItemInput[];
   note?: string | null;
 };
+

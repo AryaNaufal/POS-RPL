@@ -25,7 +25,7 @@ export async function GET(
     return NextResponse.json({ error: "Data transaksi tidak ditemukan" }, { status: 404 });
   }
 
-  const canAccessStore = await hasStoreAccess(auth.session.userId, sale.store_id, ["admin", "owner"]);
+  const canAccessStore = await hasStoreAccess(auth.session.userId, sale.store_id, ["admin"]);
   if (!canAccessStore) {
     return NextResponse.json({ error: "Anda tidak punya akses ke store ini." }, { status: 403 });
   }
@@ -42,7 +42,7 @@ export async function PATCH(
   if (!auth.ok) return auth.response;
 
   const body = (await request.json().catch(() => null)) as {
-    status?: "completed" | "void" | "refunded";
+    status?: "completed";
     note?: string | null;
   } | null;
 
@@ -57,18 +57,18 @@ export async function PATCH(
     return NextResponse.json({ error: "Data transaksi tidak ditemukan" }, { status: 404 });
   }
 
-  const canAccessStore = await hasStoreAccess(auth.session.userId, sale.store_id, ["admin", "owner"]);
+  const canAccessStore = await hasStoreAccess(auth.session.userId, sale.store_id, ["admin"]);
   if (!canAccessStore) {
     return NextResponse.json({ error: "Anda tidak punya akses ke store ini." }, { status: 403 });
   }
 
-  if (sale.status === "void" || sale.status === "refunded") {
-    return NextResponse.json({ error: "Status transaksi sudah final tidak dapat diubah." }, { status: 400 });
+  if (body?.status && body.status !== "completed") {
+    return NextResponse.json({ error: "Status transaksi tidak valid untuk scope MVP." }, { status: 400 });
   }
 
-  const updateData: any = {};
+  const updateData: { note?: string | null; status?: "completed" } = {};
   if (body?.note !== undefined) updateData.note = body.note;
-  if (body?.status !== undefined) updateData.status = body.status;
+  if (body?.status !== undefined) updateData.status = "completed";
 
   const { data: updatedSale, error: updateError } = await supabase
     .from("sales")
@@ -87,51 +87,6 @@ export async function PATCH(
     beforeData: sale,
     afterData: updatedSale,
   });
-
-  // If status changed to 'void' or 'refunded', we need to restore stocks
-  if (body?.status === "void" || body?.status === "refunded") {
-    const { data: items, error: itemsError } = await supabase
-      .from("sale_items")
-      .select("product_id, qty")
-      .eq("sale_id", saleId);
-
-    if (itemsError) {
-      console.error("Failed to fetch sale items for stock restoration:", itemsError);
-    } else if (items) {
-      for (const item of items) {
-        if (!item.product_id) continue;
-
-        // Restore stock
-        const { data: stock, error: stockFetchError } = await supabase
-          .from("product_stocks")
-          .select("qty_on_hand")
-          .eq("product_id", item.product_id)
-          .eq("store_id", sale.store_id)
-          .single();
-
-        if (!stockFetchError && stock) {
-          const newQty = Number(stock.qty_on_hand) + Number(item.qty);
-          await supabase
-            .from("product_stocks")
-            .update({ qty_on_hand: newQty })
-            .eq("product_id", item.product_id)
-            .eq("store_id", sale.store_id);
-            
-          // Record movement
-          await supabase.from("stock_movements").insert({
-            product_id: item.product_id,
-            store_id: sale.store_id,
-            movement_type: body.status === "void" ? "adjustment_in" : "sale_return", // Using adjustment_in for void or sale_return for refund
-            qty: Number(item.qty),
-            reference_type: "sale",
-            reference_id: saleId,
-            note: `${body.status.toUpperCase()} Transaksi ${updatedSale.invoice_no}`,
-            created_by: auth.session.userId,
-          });
-        }
-      }
-    }
-  }
 
   return NextResponse.json({ data: updatedSale });
 }
@@ -155,7 +110,7 @@ export async function DELETE(
     return NextResponse.json({ error: "Data transaksi tidak ditemukan" }, { status: 404 });
   }
 
-  const canAccessStore = await hasStoreAccess(auth.session.userId, sale.store_id, ["admin", "owner"]);
+  const canAccessStore = await hasStoreAccess(auth.session.userId, sale.store_id, ["admin"]);
   if (!canAccessStore) {
     return NextResponse.json({ error: "Anda tidak punya akses ke store ini." }, { status: 403 });
   }

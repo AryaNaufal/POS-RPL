@@ -8,3 +8,4 @@ export type SalePayment = {
   reference_no: string | null;
   paid_at: string;
 };
+

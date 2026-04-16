@@ -8,3 +8,4 @@ export type CreateStoreInput = {
 };
 
 export type UpdateStoreInput = Partial<CreateStoreInput>;
+

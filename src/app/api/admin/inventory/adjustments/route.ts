@@ -27,7 +27,7 @@ export async function POST(request: Request) {
   if (!["adjustment_in", "adjustment_out"].includes(body.type) || body.qty <= 0) {
     return NextResponse.json({ error: "Tipe/qty adjustment tidak valid" }, { status: 400 });
   }
-  const canAccessStore = await hasStoreAccess(auth.session.userId, body.storeId, ["admin", "owner"]);
+  const canAccessStore = await hasStoreAccess(auth.session.userId, body.storeId, ["admin"]);
   if (!canAccessStore) {
     return NextResponse.json({ error: "Anda tidak punya akses ke store ini." }, { status: 403 });
   }
@@ -109,3 +109,4 @@ export async function POST(request: Request) {
     },
   });
 }
+

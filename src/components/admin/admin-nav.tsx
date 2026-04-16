@@ -15,11 +15,7 @@ import {
   Box, 
   ShoppingCart, 
   ClipboardList, 
-  History, 
-  Wallet, 
   Database, 
-  Settings, 
-  ShieldCheck, 
   BarChart3 
 } from "lucide-react";
 
@@ -34,11 +30,7 @@ const menus = [
   { href: "/dashboard/admin/products", label: "Master Produk", icon: Box },
   { href: "/dashboard/admin/sales", label: "Penjualan", icon: ShoppingCart },
   { href: "/dashboard/admin/purchases", label: "Pembelian", icon: ClipboardList },
-  { href: "/dashboard/admin/shifts", label: "Shift Kasir", icon: History },
-  { href: "/dashboard/admin/expenses", label: "Biaya Operasional", icon: Wallet },
   { href: "/dashboard/admin/inventory", label: "Stok & Inventori", icon: Database },
-  { href: "/dashboard/admin/settings", label: "Pengaturan", icon: Settings },
-  { href: "/dashboard/admin/audit-logs", label: "Audit Log", icon: ShieldCheck },
   { href: "/dashboard/admin/reports", label: "Laporan", icon: BarChart3 },
 ];
 
@@ -73,3 +65,4 @@ export function AdminNav() {
     </nav>
   );
 }
+

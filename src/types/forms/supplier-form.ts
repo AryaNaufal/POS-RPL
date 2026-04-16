@@ -8,3 +8,4 @@ export type CreateSupplierInput = {
 };
 
 export type UpdateSupplierInput = Partial<CreateSupplierInput>;
+

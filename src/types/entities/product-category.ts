@@ -7,3 +7,4 @@ export type ProductCategory = {
   created_at: string;
   updated_at: string;
 };
+

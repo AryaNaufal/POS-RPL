@@ -24,7 +24,7 @@ export async function GET(request: Request) {
   const dateFrom = searchParams.get("dateFrom") || new Date(new Date().setDate(new Date().getDate() - 30)).toISOString().split("T")[0];
   const dateTo = searchParams.get("dateTo") || new Date().toISOString().split("T")[0];
 
-  const storeIds = await getAccessibleStoreIds(auth.session.userId, ["admin", "owner"]);
+  const storeIds = await getAccessibleStoreIds(auth.session.userId, ["admin"]);
   if (storeIds.length === 0) return NextResponse.json({ data: [] });
 
   if (storeId && !storeIds.includes(storeId)) {
@@ -83,3 +83,4 @@ export async function GET(request: Request) {
 
   return NextResponse.json({ data: result });
 }
+

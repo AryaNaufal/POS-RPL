@@ -19,3 +19,4 @@ export type Sale = {
   sold_at: string;
   created_at: string;
 };
+

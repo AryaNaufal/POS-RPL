@@ -234,9 +234,7 @@ export function PurchaseManagement() {
             >
               <option value="">Semua Status</option>
               <option value="draft">Draft</option>
-              <option value="ordered">Ordered</option>
               <option value="received">Received</option>
-              <option value="cancelled">Cancelled</option>
             </select>
             <Button variant="outline" className="rounded-xl font-bold" onClick={() => loadPurchases()}>
               Cari
@@ -274,8 +272,7 @@ export function PurchaseManagement() {
                                         "rounded-lg px-2 py-1 text-[10px] font-black uppercase tracking-tight",
                                         purchase.status === "draft" ? "bg-yellow-100 text-yellow-700" :
                                         purchase.status === "received" ? "bg-emerald-100 text-emerald-700" :
-                                        purchase.status === "cancelled" ? "bg-red-100 text-red-700" :
-                                        "bg-blue-100 text-blue-700"
+                                        "bg-secondary text-foreground"
                                     )}
                                 >
                                     {purchase.status}
@@ -328,8 +325,7 @@ export function PurchaseManagement() {
                                         "px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tighter",
                                         purchase.status === "draft" ? "bg-yellow-100 text-yellow-700" :
                                         purchase.status === "received" ? "bg-emerald-100 text-emerald-700" :
-                                        purchase.status === "cancelled" ? "bg-red-100 text-red-700" :
-                                        "bg-blue-100 text-blue-700"
+                                        "bg-secondary text-foreground"
                                     )}>
                                         {purchase.status}
                                     </span>
@@ -419,3 +415,4 @@ export function PurchaseManagement() {
     </section>
   );
 }
+

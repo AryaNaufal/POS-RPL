@@ -6,3 +6,4 @@ export type UserStoreRole = {
   is_active: boolean;
   created_at: string;
 };
+

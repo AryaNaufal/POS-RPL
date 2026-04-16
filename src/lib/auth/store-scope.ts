@@ -51,3 +51,4 @@ export async function hasStoreAccess(
 
   return (data?.length ?? 0) > 0;
 }
+

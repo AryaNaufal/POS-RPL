@@ -12,3 +12,4 @@ export type CashMovement = {
   created_by: string | null;
   created_at: string;
 };
+

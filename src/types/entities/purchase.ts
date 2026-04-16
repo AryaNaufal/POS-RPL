@@ -16,3 +16,4 @@ export type Purchase = {
   received_at: string | null;
   created_at: string;
 };
+

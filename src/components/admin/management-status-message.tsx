@@ -20,3 +20,4 @@ export function ManagementStatusMessage({ type, children, className }: Props) {
   return <p className={cn(base, tone, className)}>{children}</p>;
 }
 
+

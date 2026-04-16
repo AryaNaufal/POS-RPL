@@ -7,3 +7,4 @@ export type CreateCustomerInput = {
 };
 
 export type UpdateCustomerInput = Partial<CreateCustomerInput>;
+

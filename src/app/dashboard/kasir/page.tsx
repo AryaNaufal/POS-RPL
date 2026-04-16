@@ -6,8 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { SESSION_COOKIE_NAME, verifySessionToken } from "@/lib/auth/session";
 import { createServiceClient } from "@/lib/supabase/service";
-import { ShiftManagement } from "@/components/kasir/shift-management";
-import { CashMovementManagement } from "@/components/kasir/cash-movement-management";
 import type { Sale } from "@/types/entities/sale";
 import type { SaleItem } from "@/types/entities/sale-item";
 import type { Store } from "@/types/entities/store";
@@ -67,17 +65,12 @@ export default async function KasirPage() {
       ? completedSales.reduce((sum, sale) => sum + Number(sale.grand_total ?? 0), 0) /
         completedSales.length
       : 0;
-
-  const voidCount = salesRows.filter((sale) => sale.status === "void").length;
-  const discountCount = salesRows.filter(
-    (sale) => Number(sale.discount_total ?? 0) > 0
-  ).length;
+  const omzetHariIni = completedSales.reduce((sum, sale) => sum + Number(sale.grand_total ?? 0), 0);
 
   const shiftStats = [
     { label: "Transaksi Shift Ini", value: String(completedSales.length) },
+    { label: "Omzet Hari Ini", value: formatRupiah(omzetHariIni) },
     { label: "Rata-rata Nilai", value: formatRupiah(avgValue) },
-    { label: "Void Item", value: String(voidCount) },
-    { label: "Diskon Dipakai", value: `${discountCount}x` },
   ];
 
   const recentSaleIds = salesRows.slice(0, 10).map((sale) => sale.id);
@@ -105,11 +98,7 @@ export default async function KasirPage() {
     status:
       sale.status === "completed"
         ? "Selesai"
-        : sale.status === "draft"
-          ? "Draft"
-          : sale.status === "void"
-            ? "Void"
-            : "Refund",
+        : "Selesai",
   }));
 
   return (
@@ -136,7 +125,7 @@ export default async function KasirPage() {
           </div>
         </header>
 
-        <div className="grid gap-5 lg:grid-cols-[1fr_350px]">
+        <div className="grid gap-5">
           <div className="flex flex-col gap-5">
             <section className="grid gap-4 sm:grid-cols-2">
               {shiftStats.map((item) => (
@@ -191,12 +180,9 @@ export default async function KasirPage() {
             </Card>
           </div>
 
-          <aside className="flex flex-col gap-5">
-            <ShiftManagement storeId={activeStore.id} />
-            <CashMovementManagement storeId={activeStore.id} />
-          </aside>
         </div>
       </div>
     </main>
   );
 }
+

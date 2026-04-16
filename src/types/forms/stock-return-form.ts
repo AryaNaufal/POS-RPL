@@ -3,3 +3,4 @@ export type StockReturnInput = {
   qty: number;
   reason: string;
 };
+

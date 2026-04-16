@@ -44,7 +44,6 @@ export async function POST(request: Request) {
   const canAccessStore = await hasStoreAccess(auth.session.userId, body.store_id, [
     "kasir",
     "admin",
-    "owner",
   ]);
   if (!canAccessStore) {
     return NextResponse.json({ error: "Anda tidak punya akses ke store ini." }, { status: 403 });
@@ -113,8 +112,8 @@ export async function POST(request: Request) {
     .limit(1)
     .maybeSingle();
 
-  const saleStatus = body.status || "completed";
-  const paidTotal = saleStatus === "draft" ? 0 : grandTotal;
+  const saleStatus = "completed";
+  const paidTotal = grandTotal;
 
   const { data: sale, error: saleError } = await supabase
     .from("sales")
@@ -240,3 +239,4 @@ export async function POST(request: Request) {
     },
   });
 }
+

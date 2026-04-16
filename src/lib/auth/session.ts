@@ -70,3 +70,4 @@ export function verifySessionToken(token: string | undefined | null): SessionPay
     return null;
   }
 }
+

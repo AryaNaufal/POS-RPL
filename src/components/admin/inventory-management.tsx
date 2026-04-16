@@ -6,8 +6,6 @@ import { ConfirmActionDialog } from "@/components/ui/confirm-action-dialog";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
-import { StockTransferManagement } from "./stock-transfer-management";
-import { StockOpnameManagement } from "./stock-opname-management";
 import type { Store } from "@/types/entities/store";
 import type { Product } from "@/types/entities/product";
 import type { ProductStock } from "@/types/entities/product-stock";
@@ -25,7 +23,6 @@ type MovementRow = StockMovement & {
 };
 
 export function InventoryManagement() {
-  const [activeTab, setActiveTab] = useState<"stocks" | "transfers" | "opnames">("stocks");
   const [stores, setStores] = useState<Store[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
   const [stocks, setStocks] = useState<StockRow[]>([]);
@@ -107,7 +104,7 @@ export function InventoryManagement() {
   }, []);
 
   useEffect(() => {
-    if (!selectedStoreId || activeTab !== "stocks") return;
+    if (!selectedStoreId) return;
     (async () => {
       setError(null);
       try {
@@ -116,7 +113,7 @@ export function InventoryManagement() {
         setError(err?.message ?? "Gagal memuat data inventori");
       }
     })();
-  }, [selectedStoreId, activeTab]);
+  }, [selectedStoreId]);
 
   useEffect(() => {
     const handleEsc = (event: KeyboardEvent) => {
@@ -183,44 +180,18 @@ export function InventoryManagement() {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex gap-2 p-1 bg-secondary/50 rounded-xl w-fit">
-            <Button 
-                variant={activeTab === "stocks" ? "default" : "ghost"} 
-                className="rounded-lg h-9 px-4 text-xs font-bold uppercase tracking-wider"
-                onClick={() => setActiveTab("stocks")}
-            >
-                Stok & Mutasi
-            </Button>
-            <Button 
-                variant={activeTab === "transfers" ? "default" : "ghost"} 
-                className="rounded-lg h-9 px-4 text-xs font-bold uppercase tracking-wider"
-                onClick={() => setActiveTab("transfers")}
-            >
-                Transfer
-            </Button>
-            <Button 
-                variant={activeTab === "opnames" ? "default" : "ghost"} 
-                className="rounded-lg h-9 px-4 text-xs font-bold uppercase tracking-wider"
-                onClick={() => setActiveTab("opnames")}
-            >
-                Opname
-            </Button>
-        </div>
-        {activeTab === "stocks" && (
-            <Button 
-                className="h-10 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 font-bold shadow-lg shadow-blue-200 uppercase text-xs"
-                onClick={() => setIsAdjustModalOpen(true)}
-            >
-                Manual Adjustment
-            </Button>
-        )}
+        <p className="text-xs font-black uppercase tracking-widest text-muted-foreground">
+          Stok & Mutasi Minimum
+        </p>
+        <Button 
+            className="h-10 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 font-bold shadow-lg shadow-blue-200 uppercase text-xs"
+            onClick={() => setIsAdjustModalOpen(true)}
+        >
+            Manual Adjustment
+        </Button>
       </div>
 
-      {activeTab === "transfers" && <StockTransferManagement />}
-      {activeTab === "opnames" && <StockOpnameManagement />}
-      
-      {activeTab === "stocks" && (
-        <section className="grid gap-4 lg:grid-cols-[1fr_350px]">
+      <section className="grid gap-4 lg:grid-cols-[1fr_350px]">
           <Card className="card-retail">
             <CardHeader className="space-y-3">
               <div className="flex items-center justify-between gap-4">
@@ -333,7 +304,6 @@ export function InventoryManagement() {
             </CardContent>
           </Card>
         </section>
-      )}
 
       {isAdjustModalOpen && (
         <div 
@@ -345,7 +315,7 @@ export function InventoryManagement() {
             <Card className="w-full max-w-md shadow-2xl animate-in fade-in zoom-in duration-200">
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-4">
                     <CardTitle className="text-lg font-black uppercase tracking-tight">
-                        🔧 Manual Stock Adjustment
+                        Manual Stock Adjustment
                     </CardTitle>
                     <Button variant="ghost" size="icon" className="rounded-full" onClick={() => setIsAdjustModalOpen(false)}>
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
@@ -450,3 +420,5 @@ export function InventoryManagement() {
     </div>
   );
 }
+
+

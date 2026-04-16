@@ -22,3 +22,4 @@ export type PaymentMethod = 'cash' | 'qris' | 'card' | 'transfer' | 'ewallet' | 
 export type StockTransferStatus = 'draft' | 'shipped' | 'received' | 'cancelled';
 
 export type StockOpnameStatus = 'draft' | 'completed' | 'cancelled';
+

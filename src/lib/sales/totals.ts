@@ -31,3 +31,4 @@ export async function updateSaleTotals(supabase: ReturnType<typeof createService
     })
     .eq("id", saleId);
 }
+

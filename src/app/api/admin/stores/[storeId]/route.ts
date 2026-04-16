@@ -27,7 +27,7 @@ export async function PATCH(
     return NextResponse.json({ error: "storeId tidak valid" }, { status: 400 });
   }
 
-  const canAccessStore = await hasStoreAccess(auth.session.userId, storeId, ["admin", "owner"]);
+  const canAccessStore = await hasStoreAccess(auth.session.userId, storeId, ["admin"]);
   if (!canAccessStore) {
     return NextResponse.json({ error: "Anda tidak punya akses ke store ini." }, { status: 403 });
   }
@@ -116,7 +116,7 @@ export async function DELETE(
     return NextResponse.json({ error: "storeId tidak valid" }, { status: 400 });
   }
 
-  const canAccessStore = await hasStoreAccess(auth.session.userId, storeId, ["admin", "owner"]);
+  const canAccessStore = await hasStoreAccess(auth.session.userId, storeId, ["admin"]);
   if (!canAccessStore) {
     return NextResponse.json({ error: "Anda tidak punya akses ke store ini." }, { status: 403 });
   }

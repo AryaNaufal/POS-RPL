@@ -18,7 +18,7 @@ export async function GET() {
   }
 
   const supabase = createServiceClient();
-  const storeIds = await getAccessibleStoreIds(auth.session.userId, ["admin", "owner"]);
+  const storeIds = await getAccessibleStoreIds(auth.session.userId, ["admin"]);
   if (storeIds.length === 0) {
     return NextResponse.json({
       data: {
@@ -113,7 +113,7 @@ export async function POST(request: Request) {
   }
 
   const supabase = createServiceClient();
-  const canAccessStore = await hasStoreAccess(auth.session.userId, body.storeId, ["admin", "owner"]);
+  const canAccessStore = await hasStoreAccess(auth.session.userId, body.storeId, ["admin"]);
   if (!canAccessStore) {
     return NextResponse.json({ error: "Anda tidak punya akses ke store ini." }, { status: 403 });
   }
@@ -161,3 +161,4 @@ export async function POST(request: Request) {
 
   return NextResponse.json({ data });
 }
+

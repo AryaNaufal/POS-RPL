@@ -31,7 +31,6 @@ export function SaleManagement() {
   const [error, setError] = useState<string | null>(null);
   const [keyword, setKeyword] = useState("");
   const [storeId, setStoreId] = useState("");
-  const [status, setStatus] = useState("");
   const [selectedSaleId, setSelectedSaleId] = useState<string | null>(null);
 
   async function loadOptions() {
@@ -49,8 +48,6 @@ export function SaleManagement() {
     const params = new URLSearchParams();
     if (keyword.trim()) params.set("keyword", keyword.trim());
     if (storeId) params.set("storeId", storeId);
-    if (status) params.set("status", status);
-
     const query = params.toString() ? `?${params.toString()}` : "";
     const response = await fetch(`/api/admin/sales${query}`, { cache: "no-store" });
     const body = (await response.json().catch(() => null)) as ApiSuccess<SaleWithRelations[]> | ApiError | null;
@@ -92,7 +89,7 @@ export function SaleManagement() {
                 <Button variant={viewMode === 'list' ? 'default' : 'ghost'} size="sm" className="h-8 text-[10px] font-bold uppercase rounded-md" onClick={() => setViewMode('list')}>List</Button>
             </div>
           </div>
-          <div className="grid gap-2 sm:grid-cols-[1fr_200px_200px_auto_auto]">
+          <div className="grid gap-2 sm:grid-cols-[1fr_200px_auto_auto]">
             <Input
               className="rounded-xl border-border/60"
               value={keyword}
@@ -110,17 +107,6 @@ export function SaleManagement() {
                   {store.name}
                 </option>
               ))}
-            </select>
-            <select
-              className="h-10 rounded-xl border border-input bg-background px-3 text-sm font-medium uppercase tracking-tight"
-              value={status}
-              onChange={(event) => setStatus(event.target.value)}
-            >
-              <option value="">Semua Status</option>
-              <option value="completed">Selesai</option>
-              <option value="draft">Draft</option>
-              <option value="void">Void</option>
-              <option value="refunded">Refund</option>
             </select>
             <Button variant="outline" className="rounded-xl font-bold" onClick={() => loadSales()}>
               Cari
@@ -155,9 +141,7 @@ export function SaleManagement() {
                                 <span
                                     className={cn(
                                         "rounded-lg px-2 py-1 text-[10px] font-black uppercase tracking-tight",
-                                        sale.status === "completed" ? "bg-emerald-100 text-emerald-700" :
-                                        sale.status === "void" ? "bg-red-100 text-red-700" :
-                                        "bg-blue-100 text-blue-700"
+                                        sale.status === "completed" ? "bg-emerald-100 text-emerald-700" : "bg-secondary text-foreground"
                                     )}
                                 >
                                     {sale.status}
@@ -208,9 +192,7 @@ export function SaleManagement() {
                                 <td className="px-4 py-3 text-center">
                                     <span className={cn(
                                         "px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-tighter",
-                                        sale.status === "completed" ? "bg-emerald-100 text-emerald-700" :
-                                        sale.status === "void" ? "bg-red-100 text-red-700" :
-                                        "bg-blue-100 text-blue-700"
+                                        sale.status === "completed" ? "bg-emerald-100 text-emerald-700" : "bg-secondary text-foreground"
                                     )}>
                                         {sale.status}
                                     </span>
@@ -227,3 +209,4 @@ export function SaleManagement() {
     </section>
   );
 }
+

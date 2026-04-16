@@ -277,3 +277,4 @@ export function ExpenseManagement() {
     </div>
   );
 }
+

@@ -13,3 +13,4 @@ export type StockMovement = {
   created_by: string | null;
   created_at: string;
 };
+

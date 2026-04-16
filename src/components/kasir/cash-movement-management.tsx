@@ -124,3 +124,4 @@ export function CashMovementManagement({ storeId }: { storeId: string }) {
     </Card>
   );
 }
+

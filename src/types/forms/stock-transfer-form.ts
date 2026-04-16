@@ -9,3 +9,4 @@ export type CreateStockTransferInput = {
   items: CreateStockTransferItemInput[];
   note?: string | null;
 };
+

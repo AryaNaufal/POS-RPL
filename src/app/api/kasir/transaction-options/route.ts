@@ -10,7 +10,7 @@ export async function GET() {
   }
 
   const supabase = createServiceClient();
-  const storeIds = await getAccessibleStoreIds(auth.session.userId, ["kasir", "admin", "owner"]);
+  const storeIds = await getAccessibleStoreIds(auth.session.userId, ["kasir", "admin"]);
 
   if (storeIds.length === 0) {
     return NextResponse.json(
@@ -82,3 +82,4 @@ export async function GET() {
     },
   });
 }
+

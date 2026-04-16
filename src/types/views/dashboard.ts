@@ -17,3 +17,4 @@ export type LowStockItem = {
   minStock: number;
   unit: string;
 };
+

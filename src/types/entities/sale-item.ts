@@ -14,3 +14,4 @@ export type SaleItem = {
   return_reason: string | null;
   created_at: string;
 };
+

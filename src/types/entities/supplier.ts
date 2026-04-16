@@ -9,3 +9,4 @@ export type Supplier = {
   created_at: string;
   updated_at: string;
 };
+

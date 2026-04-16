@@ -43,3 +43,4 @@ export type ReportFilter = {
   date_to: string;
   store_id?: string;
 };
+

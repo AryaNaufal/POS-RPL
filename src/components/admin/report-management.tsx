@@ -4,13 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import type { 
-  SalesReportRow, 
-  PurchaseReportRow, 
-  ProfitReportRow, 
-  StockReportRow, 
-  CashReportRow 
-} from "@/types/views/report";
+import type { SalesReportRow, StockReportRow } from "@/types/views/report";
 import type { ApiSuccess, ApiError } from "@/types/common/api";
 
 function formatRupiah(value: number) {
@@ -21,8 +15,8 @@ function formatRupiah(value: number) {
   }).format(value);
 }
 
-type ActiveTab = "sales" | "purchases" | "stocks" | "cash" | "profit";
-type ReportDataRow = SalesReportRow | PurchaseReportRow | ProfitReportRow | StockReportRow | CashReportRow;
+type ActiveTab = "sales" | "stocks";
+type ReportDataRow = SalesReportRow | StockReportRow;
 
 export function ReportManagement() {
   const [activeTab, setActiveTab] = useState<ActiveTab>("sales");
@@ -35,9 +29,11 @@ export function ReportManagement() {
   const loadReport = useCallback(async (tab: ActiveTab, from: string, to: string) => {
     setLoading(true);
     setError(null);
-    let url = `/api/admin/reports/${tab}?dateFrom=${from}&dateTo=${to}`;
-    if (tab === "stocks") url = `/api/admin/reports/stocks`;
-    
+
+    const url = tab === "stocks"
+      ? "/api/admin/reports/stocks"
+      : `/api/admin/reports/sales?dateFrom=${from}&dateTo=${to}`;
+
     try {
       const response = await fetch(url, { cache: "no-store" });
       const body = (await response.json().catch(() => null)) as ApiSuccess<ReportDataRow[]> | ApiError | null;
@@ -60,14 +56,11 @@ export function ReportManagement() {
   function exportCSV() {
     if (data.length === 0) return;
     const rows = data as Record<string, unknown>[];
-    
+
     let csvContent = "data:text/csv;charset=utf-8,";
-    
-    // Header
     const headers = Object.keys(rows[0]).filter((key) => typeof rows[0][key] !== "object");
     csvContent += headers.join(",") + "\r\n";
-    
-    // Rows
+
     rows.forEach((row) => {
       const line = headers
         .map((header) => {
@@ -79,7 +72,7 @@ export function ReportManagement() {
         .join(",");
       csvContent += line + "\r\n";
     });
-    
+
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
     link.setAttribute("href", encodedUri);
@@ -93,31 +86,26 @@ export function ReportManagement() {
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-wrap gap-2 p-1 bg-secondary/50 rounded-xl w-fit">
-          {(["sales", "purchases", "profit", "stocks", "cash"] as const).map((tab) => (
-            <Button 
+          {(["sales", "stocks"] as const).map((tab) => (
+            <Button
               key={tab}
-              variant={activeTab === tab ? "default" : "ghost"} 
+              variant={activeTab === tab ? "default" : "ghost"}
               className="rounded-lg h-9 px-4 text-xs font-bold uppercase tracking-wider capitalize"
               onClick={() => setActiveTab(tab)}
             >
-              {tab === 'profit' ? 'Laba Kotor' : tab}
+              {tab === "sales" ? "Penjualan" : "Stok"}
             </Button>
           ))}
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" className="rounded-xl font-bold border-primary text-primary hover:bg-primary/5" onClick={() => window.print()} disabled={data.length === 0}>
-              Cetak PDF
-          </Button>
-          <Button variant="outline" className="rounded-xl font-bold border-primary text-primary hover:bg-primary/5" onClick={exportCSV} disabled={data.length === 0}>
-              Export CSV
-          </Button>
-        </div>
+        <Button variant="outline" className="rounded-xl font-bold border-primary text-primary hover:bg-primary/5" onClick={exportCSV} disabled={data.length === 0}>
+          Export CSV
+        </Button>
       </div>
 
       <Card className="rounded-2xl border-white/80 bg-white/90 shadow-sm">
         <CardHeader className="flex flex-col sm:flex-row items-center justify-between gap-4">
           <CardTitle className="text-lg">Filter Laporan</CardTitle>
-          {activeTab !== "stocks" && (
+          {activeTab === "sales" && (
             <div className="flex gap-2 items-center">
               <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="w-40 h-10 rounded-xl" />
               <span className="text-muted-foreground text-xs font-bold uppercase">s/d</span>
@@ -158,82 +146,12 @@ export function ReportManagement() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-border/40">
-                {(data as SalesReportRow[]).map(item => (
+                {(data as SalesReportRow[]).map((item) => (
                   <tr key={item.date} className="hover:bg-secondary/20 transition-colors">
                     <td className="p-4 font-bold text-foreground">{item.date}</td>
                     <td className="p-4 text-right font-medium">{item.count}</td>
                     <td className="p-4 text-right font-medium">{item.items_sold}</td>
                     <td className="p-4 text-right font-black text-emerald-700">{formatRupiah(item.total)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </Card>
-        </div>
-      )}
-
-      {activeTab === "purchases" && (
-        <div className="space-y-4">
-          <Card className="rounded-2xl bg-orange-50 border-orange-100 p-5 shadow-sm">
-            <p className="text-xs font-bold uppercase tracking-widest text-orange-700">Total Pembelian (Cost)</p>
-            <p className="text-3xl font-black text-orange-900 mt-1">{formatRupiah((data as PurchaseReportRow[]).reduce((s, i) => s + i.total, 0))}</p>
-          </Card>
-          <Card className="card-retail overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-secondary/50 border-b">
-                <tr className="text-left">
-                  <th className="p-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Tanggal</th>
-                  <th className="p-4 text-right text-[10px] font-black uppercase tracking-widest text-muted-foreground">Nota Beli</th>
-                  <th className="p-4 text-right text-[10px] font-black uppercase tracking-widest text-muted-foreground">Total Belanja</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/40">
-                {(data as PurchaseReportRow[]).map(item => (
-                  <tr key={item.date} className="hover:bg-secondary/20 transition-colors">
-                    <td className="p-4 font-bold text-foreground">{item.date}</td>
-                    <td className="p-4 text-right font-medium">{item.count}</td>
-                    <td className="p-4 text-right font-black text-orange-700">{formatRupiah(item.total)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </Card>
-        </div>
-      )}
-
-      {activeTab === "profit" && (
-        <div className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-3">
-            <Card className="rounded-2xl bg-white border-border/60 p-5 shadow-sm">
-              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Total Revenue</p>
-              <p className="text-2xl font-black text-foreground mt-1">{formatRupiah((data as ProfitReportRow[]).reduce((s, i) => s + i.revenue, 0))}</p>
-            </Card>
-            <Card className="rounded-2xl bg-white border-border/60 p-5 shadow-sm">
-              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Total COGS (HPP)</p>
-              <p className="text-2xl font-black text-red-600 mt-1">{formatRupiah((data as ProfitReportRow[]).reduce((s, i) => s + i.cost, 0))}</p>
-            </Card>
-            <Card className="rounded-2xl bg-emerald-600 border-emerald-700 p-5 shadow-sm">
-              <p className="text-[10px] font-black uppercase tracking-widest text-emerald-100">Estimasi Laba Kotor</p>
-              <p className="text-2xl font-black text-white mt-1">{formatRupiah((data as ProfitReportRow[]).reduce((s, i) => s + i.profit, 0))}</p>
-            </Card>
-          </div>
-          <Card className="card-retail overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-secondary/50 border-b">
-                <tr className="text-left">
-                  <th className="p-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Tanggal</th>
-                  <th className="p-4 text-right text-[10px] font-black uppercase tracking-widest text-muted-foreground">Revenue</th>
-                  <th className="p-4 text-right text-[10px] font-black uppercase tracking-widest text-muted-foreground">Cost (HPP)</th>
-                  <th className="p-4 text-right text-[10px] font-black uppercase tracking-widest text-muted-foreground">Gross Profit</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/40">
-                {(data as ProfitReportRow[]).map(item => (
-                  <tr key={item.date} className="hover:bg-secondary/20 transition-colors">
-                    <td className="p-4 font-bold text-foreground">{item.date}</td>
-                    <td className="p-4 text-right font-medium">{formatRupiah(item.revenue)}</td>
-                    <td className="p-4 text-right font-medium text-red-600">{formatRupiah(item.cost)}</td>
-                    <td className="p-4 text-right font-black text-emerald-700">{formatRupiah(item.profit)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -269,43 +187,7 @@ export function ReportManagement() {
           </table>
         </Card>
       )}
-
-      {activeTab === "cash" && (
-        <div className="space-y-4">
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Card className="rounded-2xl bg-emerald-50 border-emerald-100 p-5 shadow-sm">
-              <p className="text-xs font-bold uppercase tracking-widest text-emerald-700">Total Cash In</p>
-              <p className="text-3xl font-black text-emerald-900 mt-1">{formatRupiah((data as CashReportRow[]).reduce((s, i) => s + i.cashIn, 0))}</p>
-            </Card>
-            <Card className="rounded-2xl bg-red-50 border-red-100 p-5 shadow-sm">
-              <p className="text-xs font-bold uppercase tracking-widest text-red-700">Total Cash Out</p>
-              <p className="text-3xl font-black text-red-900 mt-1">{formatRupiah((data as CashReportRow[]).reduce((s, i) => s + i.cashOut, 0))}</p>
-            </Card>
-          </div>
-          <Card className="card-retail overflow-hidden">
-            <table className="w-full text-sm">
-              <thead className="bg-secondary/50 border-b">
-                <tr className="text-left">
-                  <th className="p-4 text-[10px] font-black uppercase tracking-widest text-muted-foreground">Tanggal</th>
-                  <th className="p-4 text-right text-[10px] font-black uppercase tracking-widest text-emerald-700">Cash In</th>
-                  <th className="p-4 text-right text-[10px] font-black uppercase tracking-widest text-red-700">Cash Out</th>
-                  <th className="p-4 text-right text-[10px] font-black uppercase tracking-widest text-muted-foreground">Net Cash Flow</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border/40">
-                {(data as CashReportRow[]).map(item => (
-                  <tr key={item.date} className="hover:bg-secondary/20 transition-colors">
-                    <td className="p-4 font-bold text-foreground">{item.date}</td>
-                    <td className="p-4 text-right font-medium text-emerald-700">{formatRupiah(item.cashIn)}</td>
-                    <td className="p-4 text-right font-medium text-red-600">{formatRupiah(item.cashOut)}</td>
-                    <td className="p-4 text-right font-black text-foreground">{formatRupiah(item.cashIn - item.cashOut)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </Card>
-        </div>
-      )}
     </div>
   );
 }
+

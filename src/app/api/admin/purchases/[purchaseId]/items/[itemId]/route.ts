@@ -30,7 +30,7 @@ export async function PATCH(
     return NextResponse.json({ error: "Data pembelian tidak ditemukan" }, { status: 404 });
   }
 
-  const canAccessStore = await hasStoreAccess(auth.session.userId, purchase.store_id, ["admin", "owner"]);
+  const canAccessStore = await hasStoreAccess(auth.session.userId, purchase.store_id, ["admin"]);
   if (!canAccessStore) {
     return NextResponse.json({ error: "Anda tidak punya akses ke store ini." }, { status: 403 });
   }
@@ -95,7 +95,7 @@ export async function DELETE(
     return NextResponse.json({ error: "Data pembelian tidak ditemukan" }, { status: 404 });
   }
 
-  const canAccessStore = await hasStoreAccess(auth.session.userId, purchase.store_id, ["admin", "owner"]);
+  const canAccessStore = await hasStoreAccess(auth.session.userId, purchase.store_id, ["admin"]);
   if (!canAccessStore) {
     return NextResponse.json({ error: "Anda tidak punya akses ke store ini." }, { status: 403 });
   }

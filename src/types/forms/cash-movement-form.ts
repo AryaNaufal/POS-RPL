@@ -9,3 +9,4 @@ export type CreateCashMovementInput = {
   reference_type?: string | null;
   reference_id?: string | null;
 };
+

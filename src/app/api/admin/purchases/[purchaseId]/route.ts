@@ -25,7 +25,7 @@ export async function GET(
     return NextResponse.json({ error: "Data pembelian tidak ditemukan" }, { status: 404 });
   }
 
-  const canAccessStore = await hasStoreAccess(auth.session.userId, purchase.store_id, ["admin", "owner"]);
+  const canAccessStore = await hasStoreAccess(auth.session.userId, purchase.store_id, ["admin"]);
   if (!canAccessStore) {
     return NextResponse.json({ error: "Anda tidak punya akses ke store ini." }, { status: 403 });
   }
@@ -43,7 +43,7 @@ export async function PATCH(
 
   const body = (await request.json().catch(() => null)) as {
     supplierId?: string | null;
-    status?: "draft" | "ordered" | "received" | "cancelled";
+    status?: "draft" | "received";
     note?: string | null;
   } | null;
 
@@ -58,22 +58,23 @@ export async function PATCH(
     return NextResponse.json({ error: "Data pembelian tidak ditemukan" }, { status: 404 });
   }
 
-  const canAccessStore = await hasStoreAccess(auth.session.userId, purchase.store_id, ["admin", "owner"]);
+  const canAccessStore = await hasStoreAccess(auth.session.userId, purchase.store_id, ["admin"]);
   if (!canAccessStore) {
     return NextResponse.json({ error: "Anda tidak punya akses ke store ini." }, { status: 403 });
   }
 
-  // Business Logic: If already received or cancelled, cannot change status anymore (except maybe to/from cancelled in some cases, but let's keep it simple)
-  if (purchase.status === "received" || purchase.status === "cancelled") {
-    return NextResponse.json({ error: "Status pembelian yang sudah selesai tidak dapat diubah." }, { status: 400 });
+  if (purchase.status === "received" && body?.status !== undefined) {
+    return NextResponse.json({ error: "Pembelian yang sudah received tidak dapat diubah statusnya." }, { status: 400 });
   }
 
-  const updateData: any = {};
+  const updateData: { supplier_id?: string | null; note?: string | null; status?: "draft" | "received"; received_at?: string } = {};
   if (body?.supplierId !== undefined) updateData.supplier_id = body.supplierId;
   if (body?.note !== undefined) updateData.note = body.note;
   if (body?.status !== undefined) {
+    if (body.status !== "draft" && body.status !== "received") {
+      return NextResponse.json({ error: "Status pembelian tidak valid untuk scope MVP." }, { status: 400 });
+    }
     updateData.status = body.status;
-    if (body.status === "ordered") updateData.ordered_at = new Date().toISOString();
     if (body.status === "received") updateData.received_at = new Date().toISOString();
   }
 
@@ -95,8 +96,8 @@ export async function PATCH(
     afterData: updatedPurchase,
   });
 
-  // If status changed to 'received', update stocks and create stock movements
-  if (body?.status === "received") {
+  // If status changed to 'received' from draft, update stocks once.
+  if (purchase.status === "draft" && body?.status === "received") {
     const { data: items, error: itemsError } = await supabase
       .from("purchase_items")
       .select("product_id, qty, unit_cost")
@@ -175,7 +176,7 @@ export async function DELETE(
     return NextResponse.json({ error: "Data pembelian tidak ditemukan" }, { status: 404 });
   }
 
-  const canAccessStore = await hasStoreAccess(auth.session.userId, purchase.store_id, ["admin", "owner"]);
+  const canAccessStore = await hasStoreAccess(auth.session.userId, purchase.store_id, ["admin"]);
   if (!canAccessStore) {
     return NextResponse.json({ error: "Anda tidak punya akses ke store ini." }, { status: 403 });
   }

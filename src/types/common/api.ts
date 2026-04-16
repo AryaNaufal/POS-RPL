@@ -16,3 +16,4 @@ export type PaginatedResponse<T> = {
   limit: number;
   total_pages: number;
 };
+

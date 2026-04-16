@@ -4,7 +4,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { getAccessibleStoreIds, hasStoreAccess } from "@/lib/auth/store-scope";
 import { writeAuditLogSafe } from "@/lib/audit/write-audit-log";
 
-const ALLOWED_STATUSES = ["draft", "ordered", "received", "cancelled"] as const;
+const ALLOWED_STATUSES = ["draft", "received"] as const;
 
 function buildPurchaseNo() {
   const now = new Date();
@@ -40,7 +40,7 @@ export async function GET(request: Request) {
   const dateTo = searchParams.get("dateTo");
   const limit = Math.min(Number(searchParams.get("limit") ?? 100), 200);
 
-  const storeIds = await getAccessibleStoreIds(auth.session.userId, ["admin", "owner"]);
+  const storeIds = await getAccessibleStoreIds(auth.session.userId, ["admin"]);
   if (storeIds.length === 0) return NextResponse.json({ data: [] });
 
   if (storeId && !storeIds.includes(storeId)) {
@@ -85,7 +85,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "storeId wajib diisi" }, { status: 400 });
   }
 
-  const canAccessStore = await hasStoreAccess(auth.session.userId, body.storeId, ["admin", "owner"]);
+  const canAccessStore = await hasStoreAccess(auth.session.userId, body.storeId, ["admin"]);
   if (!canAccessStore) {
     return NextResponse.json({ error: "Anda tidak punya akses ke store ini." }, { status: 403 });
   }
@@ -122,4 +122,5 @@ export async function POST(request: Request) {
 
   return NextResponse.json({ data });
 }
+
 

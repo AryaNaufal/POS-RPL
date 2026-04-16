@@ -12,3 +12,4 @@ export type CreatePurchaseInput = {
   tax_total: number;
   note?: string | null;
 };
+

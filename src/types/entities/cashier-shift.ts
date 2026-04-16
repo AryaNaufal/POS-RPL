@@ -13,3 +13,4 @@ export type CashierShift = {
   status: ShiftStatus;
   note: string | null;
 };
+

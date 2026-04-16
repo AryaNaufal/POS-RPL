@@ -7,3 +7,4 @@ export type AppSettingKey =
   | 'footer_note';
 
 export type UpdateAppSettingInput = Record<string, any>;
+

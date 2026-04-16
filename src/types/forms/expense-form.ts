@@ -12,3 +12,4 @@ export type ExpenseFilter = {
   date_from?: string;
   date_to?: string;
 };
+

@@ -296,3 +296,4 @@ export function AuthCard({ userEmail }: { userEmail?: string | null }) {
     </Card>
   );
 }
+

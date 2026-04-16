@@ -17,3 +17,4 @@ export type CreateAuditLogInput = {
   beforeData?: unknown;
   afterData?: unknown;
 };
+

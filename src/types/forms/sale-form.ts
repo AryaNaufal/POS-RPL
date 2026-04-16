@@ -22,3 +22,4 @@ export type CreateSaleInput = {
   status?: SaleStatus;
   note?: string | null;
 };
+

@@ -30,3 +30,4 @@ export async function updatePurchaseTotals(supabase: ReturnType<typeof createSer
     })
     .eq("id", purchaseId);
 }
+

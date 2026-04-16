@@ -5,3 +5,4 @@ export type StockTransferItem = {
   qty: number;
   created_at: string;
 };
+
