@@ -2,14 +2,17 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { PlusCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ProductPickerModal } from "@/components/kasir/product-picker-modal";
+import { TransactionItemList } from "@/components/kasir/transaction-item-list";
 import type { Customer } from "@/types/entities/customer";
 import type { Product } from "@/types/entities/product";
 import type { PaymentMethod } from "@/types/common/enums";
-import type { CreateSaleInput, CreateSaleItemInput } from "@/types/forms/sale-form";
+import type { CreateSaleInput } from "@/types/forms/sale-form";
 import type { ApiSuccess, ApiError } from "@/types/common/api";
 
 type PaymentMethodOption = {
@@ -22,8 +25,6 @@ type LineItem = {
   product_id: string;
   qty: number;
 };
-
-const initialItems: LineItem[] = [{ id: 1, product_id: "", qty: 1 }];
 
 function formatRupiah(value: number) {
   return new Intl.NumberFormat("id-ID", {
@@ -48,7 +49,8 @@ export default function TambahTransaksiPage() {
   const [customerId, setCustomerId] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
   const [note, setNote] = useState("");
-  const [items, setItems] = useState<LineItem[]>(initialItems);
+  const [items, setItems] = useState<LineItem[]>([]);
+  const [isProductPickerOpen, setIsProductPickerOpen] = useState(false);
 
   const productMap = useMemo(
     () => new Map(products.map((product) => [product.id, product])),
@@ -102,33 +104,45 @@ export default function TambahTransaksiPage() {
     })();
   }, []);
 
-  function addItem() {
-    const nextId = (items.at(-1)?.id ?? 0) + 1;
-    setItems((current) => [...current, { id: nextId, product_id: "", qty: 1 }]);
-  }
-
   function removeItem(id: number) {
-    setItems((current) => (current.length === 1 ? current : current.filter((item) => item.id !== id)));
+    setItems((current) => current.filter((item) => item.id !== id));
   }
 
-  function updateItem(id: number, key: "product_id" | "qty", value: string) {
+  function updateItemQty(id: number, qty: number) {
     setItems((current) =>
       current.map((item) => {
         if (item.id !== id) return item;
-        if (key === "product_id") return { ...item, product_id: value };
-        return { ...item, qty: Math.max(1, Number(value) || 1) };
+        return { ...item, qty: Math.max(1, qty) };
       })
     );
   }
 
-  async function handleSubmit(event: React.FormEvent, status: "completed" | "draft" = "completed") {
-    event.preventDefault();
+  function handleSelectProduct(product: Product) {
+    setItems((current) => {
+      const existingItem = current.find((item) => item.product_id === product.id);
+      if (existingItem) {
+        return current.map((item) =>
+          item.product_id === product.id ? { ...item, qty: item.qty + 1 } : item
+        );
+      }
+
+      const nextId = (current.at(-1)?.id ?? 0) + 1;
+      return [...current, { id: nextId, product_id: product.id, qty: 1 }];
+    });
+  }
+
+  async function submitTransaction(status: "completed" | "draft" = "completed") {
     setError(null);
     setMessage(null);
 
-    const invalidItem = items.find((item) => !item.product_id || item.qty <= 0);
+    if (items.length === 0) {
+      setError("Tambahkan minimal satu item transaksi sebelum menyimpan.");
+      return;
+    }
+
+    const invalidItem = items.find((item) => !item.product_id || item.qty <= 0 || !productMap.get(item.product_id));
     if (invalidItem) {
-      setError("Semua item harus memilih produk dan qty lebih dari 0.");
+      setError("Ada item transaksi yang tidak valid. Pilih ulang produk yang bermasalah.");
       return;
     }
 
@@ -176,7 +190,7 @@ export default function TambahTransaksiPage() {
       }
 
       setMessage(`Transaksi ${status === "draft" ? "draft " : ""}berhasil disimpan. Invoice: ${body.data.invoiceNo}`);
-      setItems(initialItems);
+      setItems([]);
       setCustomerId("");
       setNote("");
     } catch (err: any) {
@@ -184,6 +198,11 @@ export default function TambahTransaksiPage() {
     } finally {
       setSaving(false);
     }
+  }
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    await submitTransaction("completed");
   }
 
   return (
@@ -206,7 +225,7 @@ export default function TambahTransaksiPage() {
           </div>
         </header>
 
-        <form className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]" onSubmit={(e) => handleSubmit(e, "completed")}>
+        <form className="grid gap-4 lg:grid-cols-[1.2fr_0.8fr]" onSubmit={handleSubmit}>
           <Card className="rounded-2xl border-white/80 bg-white/90 shadow-sm">
             <CardHeader>
               <CardTitle className="text-lg">Detail Transaksi</CardTitle>
@@ -257,56 +276,24 @@ export default function TambahTransaksiPage() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <Label>Item Transaksi</Label>
-                  <Button type="button" variant="outline" onClick={addItem} disabled={loading || saving}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setIsProductPickerOpen(true)}
+                    disabled={loading || saving}
+                    className="rounded-xl font-bold"
+                  >
+                    <PlusCircle className="mr-2 h-4 w-4" />
                     Tambah Item
                   </Button>
                 </div>
-                <div className="space-y-3">
-                  {items.map((item) => {
-                    const selectedProduct = productMap.get(item.product_id);
-                    return (
-                      <div
-                        key={item.id}
-                        className="grid gap-2 rounded-xl border border-border/70 bg-secondary/40 p-3 sm:grid-cols-[1fr_90px_140px_auto]"
-                      >
-                        <select
-                          className="h-10 rounded-md border border-input bg-background px-3 text-sm"
-                          value={item.product_id}
-                          onChange={(event) => updateItem(item.id, "product_id", event.target.value)}
-                          disabled={loading || saving}
-                          required
-                        >
-                          <option value="">Pilih produk</option>
-                          {products.map((product) => (
-                            <option key={product.id} value={product.id}>
-                              {product.name} ({product.sku})
-                            </option>
-                          ))}
-                        </select>
-                        <Input
-                          type="number"
-                          min={1}
-                          value={item.qty}
-                          onChange={(event) => updateItem(item.id, "qty", event.target.value)}
-                          required
-                          disabled={loading || saving}
-                        />
-                        <div className="flex items-center rounded-md border border-input bg-background px-3 text-sm">
-                          {formatRupiah(Number(selectedProduct?.sell_price ?? 0))}
-                        </div>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          onClick={() => removeItem(item.id)}
-                          className="h-10"
-                          disabled={saving}
-                        >
-                          Hapus
-                        </Button>
-                      </div>
-                    );
-                  })}
-                </div>
+                <TransactionItemList
+                  items={items}
+                  productMap={productMap}
+                  onQtyChange={updateItemQty}
+                  onRemove={removeItem}
+                  disabled={loading || saving}
+                />
               </div>
 
               <div className="space-y-2">
@@ -347,7 +334,7 @@ export default function TambahTransaksiPage() {
                     size="lg" 
                     className="w-full" 
                     disabled={loading || saving}
-                    onClick={(e) => handleSubmit(e, "draft")}
+                    onClick={() => submitTransaction("draft")}
                 >
                   Simpan Draft
                 </Button>
@@ -356,6 +343,13 @@ export default function TambahTransaksiPage() {
           </Card>
         </form>
       </div>
+
+      <ProductPickerModal
+        open={isProductPickerOpen}
+        onOpenChange={setIsProductPickerOpen}
+        products={products}
+        onSelectProduct={handleSelectProduct}
+      />
     </main>
   );
 }

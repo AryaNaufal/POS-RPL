@@ -6,6 +6,7 @@ import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import type { SalesReportRow, StockReportRow } from "@/types/views/report";
 import type { ApiSuccess, ApiError } from "@/types/common/api";
+import { exportReportPdf } from "@/lib/reports/export-report-pdf";
 
 function formatRupiah(value: number) {
   return new Intl.NumberFormat("id-ID", {
@@ -82,6 +83,28 @@ export function ReportManagement() {
     document.body.removeChild(link);
   }
 
+  function exportPDF() {
+    if (data.length === 0) return;
+
+    try {
+      if (activeTab === "sales") {
+        exportReportPdf({
+          type: "sales",
+          data: data as SalesReportRow[],
+          dateFrom,
+          dateTo,
+        });
+      } else {
+        exportReportPdf({
+          type: "stocks",
+          data: data as StockReportRow[],
+        });
+      }
+    } catch {
+      setError("Gagal membuat file PDF.");
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-4">
@@ -97,9 +120,24 @@ export function ReportManagement() {
             </Button>
           ))}
         </div>
-        <Button variant="outline" className="rounded-xl font-bold border-primary text-primary hover:bg-primary/5" onClick={exportCSV} disabled={data.length === 0}>
-          Export CSV
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="outline"
+            className="rounded-xl font-bold border-primary text-primary hover:bg-primary/5"
+            onClick={exportCSV}
+            disabled={data.length === 0}
+          >
+            Export CSV
+          </Button>
+          <Button
+            variant="outline"
+            className="rounded-xl font-bold border-blue-600 text-blue-700 hover:bg-blue-50"
+            onClick={exportPDF}
+            disabled={data.length === 0}
+          >
+            Export PDF
+          </Button>
+        </div>
       </div>
 
       <Card className="rounded-2xl border-white/80 bg-white/90 shadow-sm">

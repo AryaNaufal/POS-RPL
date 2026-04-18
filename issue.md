@@ -1,480 +1,428 @@
-# Planning Implementasi Scope Final POS UMKM
+# Issue: Perencanaan Implementasi Export PDF Bertabel pada Dashboard Admin Reports
 
-## Status Eksekusi Saat Ini (2026-04-16)
-- [x] Role aktif dirapikan menjadi `admin` dan `kasir` pada jalur aktif.
-- [x] Navigasi admin dibersihkan dari menu non-MVP (shift, expenses, settings, audit log).
-- [x] Inventori disederhanakan ke stok + mutasi minimum (tanpa transfer/opname tab).
-- [x] Laporan disederhanakan ke `sales + stocks + CSV` (tanpa profit/cash/purchases/PDF).
-- [x] Flow sales aktif disederhanakan ke `completed` saja.
-- [x] Flow purchase aktif disederhanakan ke `draft -> received` saja.
-- [x] Jalur retur penjualan dan retur pembelian dihapus dari route aktif.
-- [x] Halaman non-MVP (settings/expenses/audit) ditutup dengan redirect.
-- [x] API non-MVP utama dikembalikan `410 Gone` agar tidak dipakai diam-diam.
-- [x] Migrasi non-MVP dihapus: `0006`, `0007`, `0008`.
+## Latar Belakang
 
-## Judul Proyek
-Perancangan Sistem Informasi Point of Sale (POS) pada Toko UMKM untuk Meningkatkan Efektivitas Pengelolaan Transaksi Menggunakan Model SDLC Waterfall
+Sistem ini akan dikembangkan menjadi aplikasi Point of Sales (POS) untuk toko. Pada modul laporan admin, user saat ini baru bisa melakukan export ke CSV. Untuk kebutuhan dokumentasi, cetak, dan lampiran laporan, perlu ditambahkan fitur export ke PDF yang memiliki tabel rapi dan mudah dibaca.
 
-## Tujuan Dokumen
-Dokumen ini menjadi acuan implementasi untuk:
-- menerapkan fitur pada poin no. 1
-- menerapkan penyederhanaan aturan bisnis pada poin no. 3
-- menghapus fitur dan migrasi pada poin no. 2
+Target fitur ada pada halaman:
 
-Dokumen ini ditulis agar bisa dikerjakan oleh junior programmer atau model AI yang lebih murah. Karena itu, scope harus tegas, langkah kerja harus berurutan, dan setiap task harus kecil.
+- [`src/app/dashboard/admin/reports/page.tsx`](/c:/code/pos-rpl/src/app/dashboard/admin/reports/page.tsx)
+- [`src/components/admin/report-management.tsx`](/c:/code/pos-rpl/src/components/admin/report-management.tsx)
 
-## Keputusan Scope Final
+## Kondisi Saat Ini
 
-### 1. Fitur Yang Harus Dipertahankan
-- login manual
-- role `admin` dan `kasir`
-- master produk
-- master kategori
-- master satuan
-- master customer
-- master supplier
-- penjualan kasir sederhana
-- stok otomatis dari penjualan
-- pembelian sederhana + receive barang
-- dashboard ringkas
-- laporan dasar penjualan dan stok
-- logout
+Modul laporan admin saat ini memiliki:
 
-### 2. Fitur Yang Harus Dihapus / Ditunda
-- multi-store penuh
-- role per store yang granular
-- transfer stok antar toko
-- retur jual / retur beli
-- stock opname massal
-- refund kompleks
-- draft sales lifecycle lengkap
-- expected_cash dan cash_difference detail
-- cash movement yang kompleks
-- app settings yang banyak
-- audit log before/after lengkap
-- export PDF
-- laporan laba kotor detail
-- monitoring audit log UI penuh
+- tab `sales`
+- tab `stocks`
+- filter tanggal untuk laporan `sales`
+- tombol `Export CSV`
 
-### 3. Aturan Bisnis Yang Wajib Disederhanakan
-- sistem berjalan sebagai `single store` terlebih dahulu
-- role hanya `admin` dan `kasir`
-- purchase hanya memakai alur `draft -> received`
-- sales hanya memakai status `completed`
-- tidak ada partial receive
-- tidak ada partial refund
-- laporan cukup memakai filter tanggal
-- export cukup `CSV`, jangan `PDF`
+Data laporan saat ini berasal dari:
 
-## Prinsip Implementasi
-- jangan kerjakan semua modul sekaligus
-- jangan menyisakan UI yang masih mengarah ke fitur yang sudah dihapus
-- jangan menyisakan route API yang masih membuka flow lama
-- jangan menyisakan migration yang bertentangan dengan scope baru
-- jangan biarkan type, route, komponen, dan migration saling tidak sinkron
+- `/api/admin/reports/sales`
+- `/api/admin/reports/stocks`
 
-## Target Hasil Akhir
-Saat implementasi selesai, sistem harus bisa:
-- login sebagai admin atau kasir
-- logout dengan benar
-- mengelola master produk, kategori, satuan, customer, dan supplier
-- membuat transaksi penjualan sederhana oleh kasir
-- mengurangi stok otomatis saat transaksi penjualan selesai
-- membuat draft pembelian
-- menerima pembelian dan menambah stok otomatis
-- menampilkan dashboard ringkas
-- menampilkan laporan penjualan dan laporan stok
-- export laporan ke CSV
+Struktur data yang dipakai:
 
-## Dampak Teknis Dari Keputusan Scope
-Karena poin no. 2 harus dihapus, implementor tidak cukup hanya menyembunyikan menu. Implementor harus mengecek dan membersihkan:
-- halaman UI
-- komponen
-- route API
-- helper auth / permission
-- type / interface
-- migration SQL
-- seed data
-- dummy data
-- link navigasi
-- query dashboard
+- [`src/types/views/report.ts`](/c:/code/pos-rpl/src/types/views/report.ts)
 
-Jika tidak dibersihkan sampai level tersebut, aplikasi akan tampak sederhana di UI tetapi tetap rumit di belakang layar.
+Belum ada:
 
-## Daftar Migrasi Yang Perlu Dievaluasi
+- tombol `Export PDF`
+- dependency PDF generator
+- formatter khusus untuk tabel PDF
+- template PDF untuk laporan penjualan dan stok
 
-### Migrasi Yang Perlu Dipertahankan
-- migration auth manual user
-- migration tabel inti POS yang benar-benar dipakai untuk MVP
-- migration seed data yang masih relevan
-- migration tambahan gambar produk jika memang tetap dipakai
+## Tujuan Fitur
 
-### Migrasi Yang Harus Dihapus Karena Sesuai Poin No. 2
-Minimal evaluasi dan hapus migration yang khusus untuk fitur berikut:
-- transfer stok
-- stock opname
-- retur penjualan / retur pembelian
+Menambahkan fitur export PDF yang:
 
-Contoh yang biasanya masuk kategori ini:
-- `0006_create_stock_transfers_table.sql`
-- `0007_create_stock_opname_tables.sql`
-- `0008_add_return_columns.sql`
+- bisa dipakai langsung dari halaman `dashboard/admin/reports`
+- menghasilkan file PDF dengan tabel, bukan hanya teks biasa
+- mendukung tab laporan `sales` dan `stocks`
+- memakai judul, periode, dan isi tabel yang jelas
+- cukup sederhana untuk dipelihara oleh junior programmer
 
-### Migrasi Yang Perlu Direvisi, Bukan Langsung Dihapus
-Jika migration inti masih memuat fitur di luar scope, revisi isinya agar sesuai MVP. Bagian yang biasanya perlu direvisi:
-- role `owner`
-- status sales selain `completed`
-- status purchase selain `draft` dan `received`
-- tabel atau kolom untuk shift detail
-- tabel atau kolom cash movement kompleks
-- tabel atau kolom audit log kompleks
-- tabel atau kolom app settings yang belum dipakai
+## Hasil Akhir yang Diharapkan
+
+User admin dapat:
+
+1. membuka halaman laporan
+2. memilih tab `sales` atau `stocks`
+3. mengatur filter tanggal jika berada di tab `sales`
+4. menekan tombol `Export PDF`
+5. mendapatkan file PDF dengan:
+   - judul laporan
+   - tanggal/periode laporan
+   - tabel isi laporan
+   - ringkasan sederhana jika diperlukan
+
+## Keputusan Teknis yang Direkomendasikan
+
+Supaya implementasi tetap sederhana, gunakan pendekatan client-side PDF generation.
+
+### Rekomendasi library
+
+Gunakan:
+
+- `jspdf`
+- `jspdf-autotable`
+
+Alasan:
+
+- paling umum untuk PDF tabel sederhana
+- cocok untuk junior programmer
+- cukup stabil untuk export dari data tabel yang sudah ada
+- lebih praktis daripada membangun PDF manual dari nol
+
+## Catatan Penting
+
+Jangan membuat export PDF dengan cara screenshot halaman. Hasilnya sulit dirawat dan kualitas tabel biasanya buruk.
+
+Jangan juga mengubah API laporan jika tidak benar-benar perlu. Data yang ada saat ini sudah cukup untuk membuat PDF dasar.
+
+## Scope Fitur
+
+Fitur ini hanya mencakup:
+
+- export PDF untuk tab `sales`
+- export PDF untuk tab `stocks`
+- tabel PDF yang rapi
+- nama file PDF yang jelas
+
+Tidak wajib pada issue ini:
+
+- preview PDF di browser sebelum download
+- header PDF dengan logo toko dinamis
+- multi-page layout yang sangat kompleks
+- styling PDF yang terlalu dekoratif
+- export PDF untuk tab laporan lain yang sudah tidak dipakai
+
+## Struktur Implementasi yang Disarankan
+
+Supaya mudah dikerjakan, pecah implementasi menjadi bagian berikut:
+
+### 1. Utility generator PDF laporan
+
+Contoh file:
+
+- `src/lib/reports/export-report-pdf.ts`
+
+Tanggung jawab:
+
+- menerima tipe laporan
+- menerima data laporan
+- menerima metadata seperti tanggal dan judul
+- membangun dokumen PDF
+- memanggil `autoTable`
+- menyimpan/download file PDF
+
+### 2. Mapping data tabel untuk setiap tab
+
+Contoh helper:
+
+- `buildSalesPdfRows()`
+- `buildStocksPdfRows()`
+
+Tanggung jawab:
+
+- mengubah data mentah menjadi array row yang siap dipakai `jspdf-autotable`
+
+### 3. Integrasi UI tombol Export PDF
+
+File utama:
+
+- [`src/components/admin/report-management.tsx`](/c:/code/pos-rpl/src/components/admin/report-management.tsx)
+
+Tanggung jawab:
+
+- menambahkan tombol `Export PDF`
+- memanggil utility PDF
+- disable tombol jika data kosong
+- menampilkan error jika export gagal
+
+## File yang Kemungkinan Diubah
+
+Paling mungkin disentuh:
+
+- [`src/components/admin/report-management.tsx`](/c:/code/pos-rpl/src/components/admin/report-management.tsx)
+- [`src/types/views/report.ts`](/c:/code/pos-rpl/src/types/views/report.ts) jika butuh type tambahan
+- `src/lib/reports/export-report-pdf.ts`
+- `package.json`
+- `package-lock.json`
+
+Jika ingin lebih rapi, boleh juga membuat:
+
+- `src/lib/reports/report-pdf-formatters.ts`
+
+## Tahapan Implementasi
+
+### 1. Audit modul report yang sudah ada
+
+Baca file berikut:
+
+- [`src/components/admin/report-management.tsx`](/c:/code/pos-rpl/src/components/admin/report-management.tsx)
+- [`src/types/views/report.ts`](/c:/code/pos-rpl/src/types/views/report.ts)
+
+Tujuan audit:
+
+- mengetahui tab aktif yang tersedia
+- mengetahui struktur data `sales` dan `stocks`
+- mengetahui logic `Export CSV` yang sudah ada
+
+Output:
+
+- implementor paham titik integrasi tombol `Export PDF`
+
+### 2. Pilih library PDF dan pasang dependency
+
+Pasang dependency:
+
+- `jspdf`
+- `jspdf-autotable`
 
 Catatan:
-Jika revisi migration lama berisiko merusak urutan migration, buat migration baru untuk merapikan schema. Jangan mengedit schema secara acak tanpa strategi.
 
-## Tahapan Implementasi Yang Disarankan
+- gunakan satu pendekatan saja
+- jangan campur banyak library PDF
 
-### Tahap 0: Freeze Scope
-Tujuan: memastikan semua implementor memakai scope yang sama.
+Output:
 
-#### Task
-- tulis ulang scope final di dokumen ini
-- tandai fitur yang dipertahankan
-- tandai fitur yang dihapus
-- tandai aturan bisnis final
-- larang penambahan fitur di luar dokumen
+- proyek punya dependency resmi untuk export PDF
 
-#### Output
-- satu dokumen planning final
-- satu daftar fitur yang boleh dikerjakan
-- satu daftar fitur yang tidak boleh dikerjakan
+### 3. Buat utility export PDF terpisah
 
-### Tahap 1: Audit Codebase Saat Ini
-Tujuan: menemukan semua bagian kode yang masih memakai fitur no. 2.
+Buat utility khusus agar logic PDF tidak ditaruh langsung di komponen React.
 
-#### Task
-- audit menu sidebar dan navbar
-- audit halaman admin
-- audit halaman kasir
-- audit route API
-- audit type pada folder `types`
-- audit migration dan seed
-- audit query dashboard
-- audit komponen yang masih memakai status lama seperti `draft`, `void`, `refund`, `ordered`, `cancelled`
+Contoh fungsi:
 
-#### Output
-- daftar file yang harus dipertahankan
-- daftar file yang harus disederhanakan
-- daftar file yang harus dihapus
+- `exportReportPdf({ type, data, dateFrom, dateTo })`
 
-#### Catatan Untuk Junior / AI Murah
-Jangan langsung edit semua file. Buat dulu daftar file dan alasan perubahan. Tujuannya agar tidak ada file penting yang tertinggal.
+Isi fungsi minimal:
 
-### Tahap 2: Finalisasi Schema Database
-Tujuan: memastikan database hanya mendukung scope MVP.
+- buat instance `jsPDF`
+- buat judul laporan
+- tampilkan metadata periode
+- generate tabel memakai `autoTable`
+- simpan file PDF
 
-#### Task
-- tetapkan hanya role `admin` dan `kasir`
-- tetapkan sales hanya `completed`
-- tetapkan purchase hanya `draft` dan `received`
-- hapus migration transfer stok
-- hapus migration stock opname
-- hapus migration retur
-- hapus kolom retur pada `sale_items` dan `purchase_items` jika masih ada
-- revisi seed data agar tidak menanamkan fitur di luar scope
-- pastikan satu store aktif cukup untuk menjalankan sistem
+Output:
 
-#### Acceptance Criteria
-- tidak ada migration aktif untuk transfer, opname, dan retur
-- type database konsisten dengan flow MVP
-- seed data tidak lagi membuat data untuk fitur yang sudah dihapus
+- logic export terisolasi dan reusable
 
-### Tahap 3: Rapikan Auth dan Hak Akses
-Tujuan: akses sistem hanya mengikuti role dan scope baru.
+### 4. Tentukan format PDF untuk tab sales
 
-#### Task
-- pertahankan login manual
-- pertahankan logout
-- hapus penggunaan role `owner`
-- rapikan helper permission agar hanya mengenal `admin` dan `kasir`
-- proteksi dashboard admin hanya untuk admin
-- proteksi dashboard kasir hanya untuk kasir atau admin yang diizinkan
-- hapus dependensi auth yang hanya relevan untuk multi-store granular
+Untuk tab `sales`, tabel PDF minimal memiliki kolom:
 
-#### Acceptance Criteria
-- login bekerja
-- logout bekerja
-- hanya ada role `admin` dan `kasir`
-- tidak ada pengecekan role `owner` pada jalur aktif
+- tanggal
+- qty nota
+- qty produk
+- total omzet
 
-### Tahap 4: Rapikan Navigasi dan Hapus Menu Fitur No. 2
-Tujuan: UI tidak lagi menampilkan fitur yang sudah diputuskan dihapus.
+Di atas tabel, tampilkan:
 
-#### Task
-- hapus menu transfer stok
-- hapus menu stock opname
-- hapus menu refund / retur jika ada
-- hapus menu settings yang kompleks
-- hapus menu audit log penuh
-- hapus menu cash movement detail
-- hapus menu shift detail jika masih ada
-- hapus link dashboard yang mengarah ke fitur tersebut
+- judul: `Laporan Penjualan`
+- periode: `dateFrom - dateTo`
 
-#### Acceptance Criteria
-- sidebar dan dashboard hanya menampilkan fitur MVP
-- tidak ada link rusak ke halaman fitur yang sudah dihapus
+Opsional tetapi direkomendasikan:
 
-### Tahap 5: Rapikan Master Data Yang Dipertahankan
-Tujuan: semua master data inti siap dipakai transaksi.
+- ringkasan total penjualan
+- total transaksi
+- total item terjual
 
-#### Modul
-- produk
-- kategori
-- satuan
-- customer
-- supplier
+Output:
 
-#### Task
-- pastikan CRUD tiap modul berjalan
-- rapikan validasi form
-- rapikan grid/list jika ada
-- rapikan type untuk setiap entitas
-- pastikan endpoint hanya mengembalikan field yang relevan
+- format PDF sales jelas dan stabil
 
-#### Acceptance Criteria
-- admin bisa tambah, lihat, edit, dan nonaktifkan data inti
-- semua master data dipakai oleh form transaksi
+### 5. Tentukan format PDF untuk tab stocks
 
-### Tahap 6: Sederhanakan Penjualan Kasir
-Tujuan: penjualan hanya memakai flow inti yang mudah dijelaskan di tugas kuliah.
+Untuk tab `stocks`, tabel PDF minimal memiliki kolom:
 
-#### Aturan Bisnis
-- sales hanya `completed`
-- tidak ada draft penjualan panjang
-- tidak ada refund kompleks
-- tidak ada retur jual
-- stok langsung berkurang saat transaksi selesai
+- nama produk
+- SKU
+- store
+- qty stok
+- nilai aset
 
-#### Task
-- hapus tombol atau flow `save draft` jika masih ada
-- hapus aksi `void` dan `refund`
-- hapus route yang hanya dipakai untuk draft sales
-- hapus route retur penjualan
-- pastikan form transaksi hanya membuat transaksi selesai
-- pastikan stok berkurang setelah transaksi dibuat
-- rapikan halaman detail penjualan menjadi read-only bila perlu
+Di atas tabel, tampilkan:
 
-#### Acceptance Criteria
-- kasir bisa membuat transaksi selesai
-- stok berkurang otomatis
-- histori penjualan tampil tanpa status rumit
+- judul: `Laporan Stok`
+- tanggal export
 
-### Tahap 7: Sederhanakan Pembelian
-Tujuan: pembelian cukup mendukung restock barang.
+Catatan:
 
-#### Aturan Bisnis
-- purchase hanya `draft -> received`
-- tidak ada `ordered`
-- tidak ada `cancelled` bila tidak benar-benar dibutuhkan
-- tidak ada partial receive
-- tidak ada retur pembelian
+- tab stok saat ini tidak memakai filter tanggal, jadi cukup tampilkan tanggal export atau label `snapshot`
 
-#### Task
-- rapikan daftar pembelian agar hanya menampilkan status yang dipakai
-- hapus aksi `ordered`
-- hapus aksi retur pembelian
-- hapus route retur pembelian
-- pastikan item purchase hanya bisa diubah saat `draft`
-- saat status `received`, stok bertambah otomatis satu kali
+Output:
 
-#### Acceptance Criteria
-- draft purchase bisa dibuat
-- draft purchase bisa diubah menjadi `received`
-- stok tidak bertambah dua kali untuk transaksi yang sama
+- format PDF stocks jelas dan mudah dipahami
 
-### Tahap 8: Rapikan Inventori
-Tujuan: inventori hanya fokus pada stok saat ini dan mutasi minimum.
+### 6. Buat mapper data ke row PDF
 
-#### Task
-- tampilkan stok produk
-- tampilkan low stock
-- tampilkan mutasi stok sederhana
-- hapus tab transfer stok
-- hapus tab stock opname
-- hapus data mutasi yang berasal dari fitur retur jika fitur tersebut dihapus
+Jangan langsung kirim object mentah dari API ke `autoTable`.
 
-#### Acceptance Criteria
-- halaman inventori hanya menampilkan fitur yang dipakai MVP
-- tidak ada tab kosong atau tab rusak
+Buat mapper yang mengubah data ke bentuk sederhana:
 
-### Tahap 9: Rapikan Dashboard
-Tujuan: dashboard hanya menampilkan ringkasan yang benar-benar penting.
+- array header
+- array body row
 
-#### Dashboard Admin
-- total produk
-- total customer
-- total supplier
-- total transaksi penjualan
-- low stock
-- shortcut ke modul inti
+Contoh untuk `sales`:
 
-#### Dashboard Kasir
-- transaksi hari ini
-- omzet hari ini
-- shortcut ke transaksi baru
+- `["Tanggal", "Qty Nota", "Qty Produk", "Total Omzet"]`
 
-#### Task
-- hapus widget shift detail
-- hapus widget cash movement
-- hapus widget audit log
-- hapus widget settings
-- hapus perhitungan void/refund
-- rapikan query agar hanya mengambil data fitur MVP
+Contoh untuk `stocks`:
 
-#### Acceptance Criteria
-- dashboard cepat dimuat
-- dashboard tidak lagi bergantung pada fitur yang sudah dihapus
+- `["Produk", "SKU", "Store", "Stok", "Nilai Aset"]`
 
-### Tahap 10: Rapikan Laporan
-Tujuan: laporan cukup untuk kebutuhan tugas kuliah.
+Output:
 
-#### Aturan Bisnis
-- laporan hanya penjualan dan stok
-- filter cukup tanggal
-- export cukup CSV
-- tidak ada PDF
-- tidak ada laporan laba kotor detail
-- tidak ada laporan kas kompleks
+- struktur data PDF lebih aman dan mudah diuji
 
-#### Task
-- hapus tab laporan pembelian jika tidak dipakai
-- hapus tab laporan profit
-- hapus tab laporan cash
-- pertahankan laporan penjualan
-- pertahankan laporan stok
-- pertahankan export CSV
-- rapikan teks UI agar sesuai scope baru
+### 7. Integrasikan tombol Export PDF ke UI laporan
 
-#### Acceptance Criteria
-- admin bisa melihat laporan penjualan
-- admin bisa melihat laporan stok
-- admin bisa export CSV
+Di `report-management.tsx`, tambahkan tombol baru:
 
-### Tahap 11: Bersihkan Type dan Helper
-Tujuan: codebase rapi dan tidak menyimpan sisa fitur lama.
+- `Export PDF`
 
-#### Task
-- hapus enum status yang tidak dipakai
-- hapus type transfer stok
-- hapus type stock opname
-- hapus type retur bila ada
-- rapikan type `SaleStatus`
-- rapikan type `PurchaseStatus`
-- rapikan helper permission
-- rapikan helper dashboard / report bila ada
+Aturan UI:
 
-#### Acceptance Criteria
-- tidak ada type yang memaksa komponen memakai fitur lama
-- type, schema, dan route konsisten
+- tampil di dekat tombol `Export CSV`
+- disable jika `data.length === 0`
+- gunakan style yang konsisten dengan tombol lain
 
-### Tahap 12: Pengujian dan Validasi Akhir
-Tujuan: memastikan seluruh penyederhanaan benar-benar aman.
+Output:
 
-#### Uji Minimal
-- login admin berhasil
-- login kasir berhasil
-- logout berhasil
-- CRUD produk berhasil
-- CRUD kategori berhasil
-- CRUD satuan berhasil
-- CRUD customer berhasil
-- CRUD supplier berhasil
-- transaksi penjualan berhasil
-- stok berkurang setelah penjualan
-- purchase draft berhasil dibuat
-- purchase received berhasil menambah stok
-- dashboard admin tampil
-- dashboard kasir tampil
-- laporan penjualan tampil
-- laporan stok tampil
-- export CSV berjalan
-- tidak ada menu yang mengarah ke fitur no. 2
-- tidak ada migration aktif untuk transfer, opname, dan retur
+- user punya aksi export PDF yang jelas
 
-## Pembagian Issue Kecil Yang Direkomendasikan
-Issue harus kecil dan tidak kabur. Satu issue idealnya hanya mengubah satu area.
+### 8. Tambahkan penanganan error saat export
 
-1. Audit fitur dan file yang terkena simplifikasi scope
-2. Hapus menu UI untuk fitur no. 2
-3. Hapus route halaman yang hanya dipakai fitur no. 2
-4. Hapus migration transfer stok
-5. Hapus migration stock opname
-6. Hapus migration retur
-7. Rapikan enum role menjadi admin dan kasir saja
-8. Rapikan helper permission dan store access
-9. Rapikan form login dan logout
-10. Rapikan dashboard admin agar hanya pakai data MVP
-11. Rapikan dashboard kasir agar tidak pakai shift/cash movement
-12. Rapikan form transaksi kasir menjadi completed-only
-13. Hapus flow draft/void/refund pada penjualan
-14. Rapikan histori dan detail penjualan
-15. Rapikan modul pembelian menjadi draft-received only
-16. Hapus flow ordered/cancelled/return pembelian
-17. Rapikan inventori agar tanpa transfer/opname
-18. Rapikan laporan menjadi sales + stocks + CSV only
-19. Rapikan type entity dan enum agar sinkron dengan schema baru
-20. Rapikan seed data agar hanya menghasilkan data MVP
-21. Jalankan pengujian manual seluruh flow inti
-22. Perbaiki bug sisa hasil cleanup scope
+Jika generator PDF gagal:
 
-## Format Task Untuk Junior Programmer / AI Murah
-Setiap task harus memakai format ini:
-- tujuan perubahan
-- file yang akan diubah
-- file yang akan dihapus
-- migration yang terkena dampak
-- endpoint yang dibuat/diubah/dihapus
-- aturan bisnis yang berlaku
-- langkah uji manual
-- batasan: jangan mengerjakan fitur di luar task
+- tampilkan pesan error sederhana
+- jangan membuat halaman crash
 
-## Contoh Task Yang Baik
-- hapus menu transfer stok dan route terkait
-- sederhanakan status purchase menjadi draft dan received
-- hapus tombol draft pada form transaksi kasir
-- rapikan dashboard kasir agar tidak memakai shift
+Contoh pesan:
 
-## Contoh Task Yang Buruk
-- rapikan seluruh sistem POS
-- hapus semua yang tidak perlu
-- perbaiki semua dashboard dan semua API sekaligus
+- `Gagal membuat file PDF`
 
-## Aturan Penting Untuk Implementor
-- jangan menambah fitur baru
-- jangan memindahkan scope kembali ke multi-store penuh
-- jangan mempertahankan kode lama hanya karena takut menghapus
-- jika fitur benar-benar dihapus, hapus sampai level UI, API, type, dan migration
-- jika migration inti masih terlalu lebar, buat rencana revisi yang aman
-- selalu cek apakah perubahan di UI sudah sinkron dengan query database
-- utamakan kestabilan flow inti daripada kelengkapan fitur
+Output:
 
-## Definition of Done
-Satu issue dianggap selesai jika:
-- scope task jelas
-- perubahan hanya menyentuh area yang ditentukan
-- fitur no. 1 tetap berjalan
-- aturan bisnis no. 3 sudah diterapkan pada area tersebut
-- sisa fitur no. 2 pada area tersebut sudah dihapus
-- ada langkah uji manual
-- tidak menambah kompleksitas baru
+- fitur export lebih aman dipakai
 
-## Penutup
-Target implementasi ini bukan membuat sistem retail besar, tetapi membuat POS UMKM yang stabil, mudah dijelaskan di laporan Waterfall, dan cukup kuat untuk demo.
+### 9. Tentukan nama file PDF
 
-Fokus implementasi adalah:
-- mempertahankan fitur inti
-- menyederhanakan alur bisnis
-- menghapus fitur dan migrasi yang membuat sistem terlalu kompleks
+Gunakan nama file yang jelas dan konsisten.
 
-Jika seluruh dokumen ini diikuti, hasil akhirnya akan lebih realistis untuk tugas kuliah, lebih mudah diuji, dan lebih aman dikerjakan oleh junior programmer atau model AI yang lebih murah.
+Contoh:
+
+- `report-sales-2026-04-01-to-2026-04-18.pdf`
+- `report-stocks-2026-04-18.pdf`
+
+Output:
+
+- file hasil export mudah diidentifikasi user
+
+### 10. Rapikan tampilan tabel PDF
+
+Minimal atur:
+
+- ukuran font
+- padding sel
+- warna header tabel
+- alignment kolom angka ke kanan
+- pemotongan teks panjang bila perlu
+
+Jangan terlalu banyak styling. Fokus utama:
+
+- terbaca
+- rapi
+- konsisten
+
+Output:
+
+- PDF terlihat profesional walau sederhana
+
+### 11. Uji manual untuk dua tab laporan
+
+Skenario minimal:
+
+1. Buka tab `sales`
+2. Atur filter tanggal
+3. Klik `Export PDF`
+4. Pastikan file terunduh
+5. Buka PDF dan cek tabel penjualan
+6. Pindah ke tab `stocks`
+7. Klik `Export PDF`
+8. Pastikan file terunduh
+9. Buka PDF dan cek tabel stok
+10. Coba export saat data kosong
+
+Output:
+
+- fitur terbukti berjalan pada semua tab aktif
+
+## Acceptance Criteria
+
+Fitur dianggap selesai jika:
+
+1. Halaman `dashboard/admin/reports` memiliki tombol `Export PDF`.
+2. Tombol `Export PDF` bekerja untuk tab `sales`.
+3. Tombol `Export PDF` bekerja untuk tab `stocks`.
+4. File PDF berisi tabel, bukan hanya teks polos.
+5. PDF menampilkan judul laporan yang sesuai.
+6. PDF `sales` menampilkan periode filter tanggal.
+7. PDF `stocks` menampilkan data stok yang relevan.
+8. Tombol disable saat tidak ada data.
+9. Export PDF tidak merusak fitur `Export CSV` yang sudah ada.
+
+## Checklist Implementasi
+
+- [ ] Audit modul report selesai
+- [ ] Dependency `jspdf` dipasang
+- [ ] Dependency `jspdf-autotable` dipasang
+- [ ] Utility export PDF dibuat
+- [ ] Formatter data `sales` dibuat
+- [ ] Formatter data `stocks` dibuat
+- [ ] Tombol `Export PDF` ditambahkan
+- [ ] Error handling export ditambahkan
+- [ ] Nama file PDF dibuat konsisten
+- [ ] Testing manual tab `sales` selesai
+- [ ] Testing manual tab `stocks` selesai
+
+## Pembagian Task Kecil yang Direkomendasikan
+
+Agar aman untuk junior programmer atau model AI murah, pecah issue menjadi task kecil:
+
+1. Audit report-management dan struktur data report
+2. Pasang dependency PDF
+3. Buat utility export PDF dasar
+4. Implementasikan PDF untuk tab `sales`
+5. Implementasikan PDF untuk tab `stocks`
+6. Tambahkan tombol `Export PDF` ke UI
+7. Uji manual hasil PDF
+
+## Instruksi Singkat untuk Junior Programmer / AI Murah
+
+Kerjakan berurutan seperti ini:
+
+1. Baca `src/components/admin/report-management.tsx`
+2. Baca `src/types/views/report.ts`
+3. Pasang `jspdf` dan `jspdf-autotable`
+4. Buat helper export PDF terpisah
+5. Buat format tabel PDF untuk `sales`
+6. Buat format tabel PDF untuk `stocks`
+7. Tambahkan tombol `Export PDF`
+8. Tes hasil file PDF untuk kedua tab
+
+## Hal yang Tidak Boleh Dilakukan
+
+- jangan mengganti API laporan tanpa alasan kuat
+- jangan membuat PDF dengan screenshot halaman
+- jangan menaruh semua logic PDF langsung di komponen React
+- jangan merusak `Export CSV` yang sudah ada
+- jangan menambah scope ke preview PDF atau desain report kompleks jika belum diminta
+
+## Ringkasan
+
+Issue ini fokus pada penambahan export PDF bertabel untuk modul laporan admin. Implementasi terbaik untuk repo ini adalah menambahkan generator PDF client-side yang sederhana, memanfaatkan data report yang sudah ada, dan mengintegrasikannya ke `report-management` tanpa mengubah flow laporan yang sekarang.

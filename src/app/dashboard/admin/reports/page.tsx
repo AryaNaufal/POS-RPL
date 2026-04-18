@@ -7,7 +7,7 @@ export default function AdminReportsPage() {
         <p className="text-xs font-semibold uppercase tracking-[0.2em] text-emerald-700">Admin / Laporan</p>
         <h1 className="mt-1 text-2xl font-semibold text-foreground">Laporan Bisnis</h1>
         <p className="mt-2 text-sm text-muted-foreground">
-          Lihat laporan penjualan dan stok, lalu export data ke CSV.
+          Lihat laporan penjualan dan stok, lalu export data ke CSV atau PDF.
         </p>
       </header>
       <ReportManagement />
