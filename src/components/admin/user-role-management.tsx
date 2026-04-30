@@ -220,6 +220,16 @@ export function UserRoleManagement() {
                                   )}>
                                       {user.is_active ? "Akun Aktif" : "Akun Nonaktif"}
                                   </span>
+                                  <span className={cn(
+                                      "ml-1 text-[9px] font-black px-1.5 py-0.5 rounded uppercase tracking-tighter",
+                                      user.approval_status === "approved"
+                                        ? "bg-blue-100 text-blue-700"
+                                        : user.approval_status === "rejected"
+                                          ? "bg-red-100 text-red-700"
+                                          : "bg-amber-100 text-amber-700"
+                                  )}>
+                                      {user.approval_status}
+                                  </span>
                               </div>
                           </div>
                           <div className="flex flex-col gap-1">
@@ -303,6 +313,16 @@ export function UserRoleManagement() {
                                     user.is_active ? "bg-emerald-100 text-emerald-700" : "bg-zinc-100 text-zinc-500"
                                 )}>
                                     {user.is_active ? "Aktif" : "Nonaktif"}
+                                </span>
+                                <span className={cn(
+                                    "text-[9px] font-black px-2 py-1 rounded uppercase tracking-tighter",
+                                    user.approval_status === "approved"
+                                      ? "bg-blue-100 text-blue-700"
+                                      : user.approval_status === "rejected"
+                                        ? "bg-red-100 text-red-700"
+                                        : "bg-amber-100 text-amber-700"
+                                )}>
+                                    {user.approval_status}
                                 </span>
                                 <Button size="sm" variant="ghost" className="h-8 text-[10px] font-bold uppercase text-primary hover:bg-primary/5" onClick={() => openAssignModal(user.id)}>Assign</Button>
                                 <Button 

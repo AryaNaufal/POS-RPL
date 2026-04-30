@@ -35,9 +35,6 @@ export default async function KasirLayout({
             <CardContent className="space-y-4">
               <KasirNav />
               <div className="grid gap-2 pt-2">
-                <Button asChild variant="outline">
-                  <Link href="/dashboard/kasir">Kembali ke Dashboard Kasir</Link>
-                </Button>
                 <LogoutButton />
               </div>
             </CardContent>

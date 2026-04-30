@@ -35,9 +35,6 @@ export default async function AdminLayout({
             <CardContent className="space-y-4">
               <AdminNav />
               <div className="grid gap-2 pt-2">
-                <Button asChild variant="outline">
-                  <Link href="/dashboard">Kembali ke Dashboard</Link>
-                </Button>
                 <LogoutButton />
               </div>
             </CardContent>

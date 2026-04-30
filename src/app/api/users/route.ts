@@ -47,6 +47,8 @@ export async function POST(request: Request) {
     name: normalizedName,
     email: normalizedEmail,
     password_hash: passwordHash,
+    approval_status: "pending",
+    approval_note: "Menunggu approval admin",
   });
 
   if (error) {
@@ -56,6 +58,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
 
-  return NextResponse.json({ data: "Registrasi manual berhasil" });
+  return NextResponse.json({
+    data: "Registrasi berhasil. Akun Anda menunggu approval admin sebelum bisa login.",
+    approvalStatus: "pending",
+  });
 }
 

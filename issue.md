@@ -1,262 +1,296 @@
-# Planning Implementasi Dashboard Berdasarkan Role
+# Planning Implementasi Approval Setelah Register
 
 ## Judul Proyek
 Perancangan Sistem Informasi Point of Sale (POS) pada Toko UMKM untuk Meningkatkan Efektivitas Pengelolaan Transaksi Menggunakan Model SDLC Waterfall
 
 ## Tujuan Dokumen
-Dokumen ini menjadi acuan implementasi perbaikan tampilan dashboard agar sesuai dengan role masing-masing pengguna.
+Dokumen ini menjadi acuan implementasi alur registrasi yang harus menunggu approval admin sebelum user bisa login.
 
 Fokusnya adalah:
-- dashboard admin menampilkan area admin
-- dashboard kasir menampilkan area kasir
-- tampilan, menu, dan data yang muncul harus berbeda sesuai role
+- setelah register, user melihat notifikasi bahwa akun masih menunggu approval
+- user tidak bisa login sebelum admin memberi role atau menyetujui akun
+- admin punya alur sederhana untuk menyetujui akun dan memberi role
 - tahapan kerja dibuat jelas agar bisa dikerjakan oleh junior programmer atau model AI yang lebih murah
 
 ## Masalah Yang Ingin Diselesaikan
-Saat ini dashboard masih cenderung campur antara kebutuhan admin dan kasir.
+Saat ini registrasi manual langsung membuat akun siap dipakai.
 
 Akibatnya:
-- user melihat menu yang tidak relevan dengan rolenya
-- navigasi menjadi tidak fokus
-- area kerja admin dan kasir kurang tegas
-- struktur UI sulit dikembangkan untuk fitur berikutnya
+- akun baru bisa masuk tanpa validasi admin
+- role belum tentu diberikan dengan benar
+- admin tidak punya kontrol atas user baru
+- data user bisa bertambah tanpa proses verifikasi internal
 
 ## Target Akhir
 Setelah implementasi selesai:
-- user dengan role admin masuk ke area admin
-- user dengan role kasir masuk ke area kasir
-- halaman dashboard awal melakukan redirect sesuai role
-- setiap role memiliki layout, menu, dan ringkasan data yang berbeda
+- user berhasil register lalu melihat pesan `menunggu approval admin`
+- user tidak bisa login sebelum disetujui
+- admin bisa melihat daftar user pending
+- admin bisa memberi role terlebih dahulu sebelum user login
+- user baru hanya bisa login jika status dan role sudah valid
 
 ## Scope Fitur
-Planning ini hanya membahas pemisahan dashboard berdasarkan role.
+Planning ini hanya membahas approval setelah register.
 
 Termasuk di dalam scope:
-- penentuan role setelah login
-- redirect ke dashboard yang sesuai
-- layout khusus admin
-- layout khusus kasir
-- menu khusus tiap role
-- data ringkasan khusus tiap role
-- proteksi route berdasarkan role
+- status user setelah register
+- notifikasi pending approval di UI register
+- validasi login berdasarkan status approval
+- halaman atau komponen admin untuk approval user
+- pemberian role sebelum login diizinkan
 
 Tidak wajib pada issue ini:
-- penambahan role baru
-- multi-store penuh
-- permission granular per fitur
-- laporan lanjutan
-- desain ulang seluruh aplikasi
+- approval berlapis
+- verifikasi email
+- OTP
+- persetujuan multi-admin
+- riwayat approval lengkap
 
 ## Keputusan Teknis Yang Direkomendasikan
-Gunakan pendekatan route terpisah untuk dashboard per role.
+Gunakan pendekatan approval state di database.
 
-Contoh struktur yang disarankan:
-- `/dashboard` sebagai halaman penentu arah
-- `/dashboard/admin` untuk area admin
-- `/dashboard/kasir` untuk area kasir
+Alur yang disarankan:
+1. user register
+2. sistem menyimpan user dengan status `pending`
+3. admin membuka daftar user pending
+4. admin menyetujui user dan memberi role
+5. status berubah menjadi `approved`
+6. user baru boleh login
 
-Gunakan layout yang berbeda untuk masing-masing area agar:
-- menu mudah dipisahkan
-- komponen lebih rapi
-- pengembangan berikutnya tidak saling mengganggu
+## Kenapa Flow Ini Dipilih
+- cocok dengan sistem auth manual yang sudah ada
+- mudah dijelaskan dalam dokumen Waterfall
+- cocok untuk kontrol user di aplikasi POS
+- lebih aman daripada akun langsung aktif
 
 ## Prinsip Implementasi
-1. Admin dan kasir tidak memakai dashboard yang sama.
-2. Setiap role hanya melihat menu yang relevan.
-3. Ringkasan data di dashboard harus sesuai kebutuhan role.
-4. Route harus diproteksi agar user tidak bisa masuk ke area role lain.
-5. UI harus sederhana dan konsisten dengan gaya POS toko.
+1. User baru tidak otomatis aktif.
+2. Login harus gagal jika user belum disetujui.
+3. Approval harus menyimpan role yang jelas.
+4. Admin harus bisa melihat status user baru.
+5. UI harus memberi pesan yang mudah dipahami user.
 
-## Peran Masing-Masing Dashboard
+## Data Yang Dibutuhkan
+Untuk mendukung approval, sistem perlu menyimpan informasi berikut:
+- status approval user
+- siapa yang menyetujui
+- kapan user disetujui
+- role yang diberikan
+- catatan approval jika diperlukan
 
-### 1. Dashboard Admin
-Area admin berisi pengelolaan sistem dan master data.
+## Struktur Implementasi Yang Disarankan
 
-Isi yang cocok untuk admin:
-- ringkasan omzet dan transaksi
-- jumlah produk aktif
-- stok menipis
-- customer dan supplier
-- shortcut ke master produk
-- shortcut ke master kategori
-- shortcut ke master satuan
-- shortcut ke manajemen user
-- shortcut ke laporan
+### 1. Tambahkan status approval pada user
+Tambahkan penanda status pada tabel `users`.
 
-### 2. Dashboard Kasir
-Area kasir berisi operasional transaksi harian.
+Kolom yang disarankan:
+- `approval_status`
+- `approved_at`
+- `approved_by`
+- `approval_note`
 
-Isi yang cocok untuk kasir:
-- ringkasan transaksi hari ini
-- omzet hari ini
-- akses cepat ke tambah transaksi
-- daftar transaksi terbaru
-- status shift atau aktivitas kasir
-- informasi store aktif
+Status yang disarankan:
+- `pending`
+- `approved`
+- `rejected`
+
+Catatan:
+- user baru harus otomatis `pending`
+- login hanya boleh jika status `approved`
+- status `rejected` dipakai jika admin menolak akun
+
+### 2. Validasi login berdasarkan approval
+Endpoint login harus mengecek status approval sebelum membuat session.
+
+Contoh file:
+- `src/app/api/login/route.ts`
+
+Tanggung jawab:
+- cek apakah user terdaftar
+- cek password benar
+- cek status approval
+- cek role sudah diberikan
+- tolak login jika user masih pending
+
+### 3. Tampilkan notifikasi setelah register
+Setelah registrasi berhasil, UI harus memberi pesan bahwa akun menunggu approval admin.
+
+Contoh file:
+- `src/components/auth/auth-card.tsx`
+
+Tanggung jawab:
+- tampilkan pesan sukses register
+- jelaskan bahwa user belum bisa login
+- arahkan user menunggu approval dari admin
+
+### 4. Buat alur approval di admin
+Admin perlu halaman untuk melihat user pending dan memberi approval.
+
+Contoh file:
+- `src/components/admin/user-approval-management.tsx`
+- `src/app/dashboard/admin/approvals/page.tsx`
+
+Tanggung jawab:
+- tampilkan daftar user pending
+- admin bisa approve user
+- admin bisa memilih role yang akan diberikan
+- simpan tanggal dan admin yang melakukan approval
+
+### 5. Integrasikan approval dengan role assignment
+User baru baru dianggap aktif jika role sudah diberikan.
+
+Contoh tabel yang dipakai:
+- `users`
+- `user_store_roles`
+- `roles`
+- `stores`
+
+Tanggung jawab:
+- saat approve, admin menentukan role
+- sistem membuat atau memperbarui assignment role
+- login hanya sukses jika assignment role valid
+
+### 6. Tambahkan status UI untuk admin
+Admin perlu melihat status user dengan jelas.
+
+Status yang disarankan:
+- pending
+- approved
+- rejected
+
+Tanggung jawab:
+- tampilkan badge status
+- tampilkan filter status
+- tampilkan aksi approve/reject
 
 ## Tahapan Implementasi
 
-### 1. Audit struktur dashboard saat ini
-Tujuan: memahami komponen yang masih campur antara admin dan kasir.
+### 1. Audit flow register dan login saat ini
+Tujuan: memahami alur autentikasi manual sebelum menambahkan approval.
 
 #### File yang dibaca
-- `src/app/dashboard/page.tsx`
-- `src/app/dashboard/admin/page.tsx`
-- `src/app/dashboard/kasir/page.tsx`
-- `src/app/dashboard/admin/layout.tsx`
+- `src/app/api/users/route.ts`
+- `src/app/api/login/route.ts`
+- `src/components/auth/auth-card.tsx`
+- `supabase/migrations/0002_create_manual_users_table.sql`
 
 #### Yang harus dipahami
-- halaman mana yang menjadi landing setelah login
-- menu mana yang masih ditampilkan ke semua role
-- data apa yang sebenarnya khusus admin
-- data apa yang khusus kasir
+- registrasi langsung insert ke tabel `users`
+- login hanya cek email dan password
+- belum ada status approval
+- belum ada validasi role sebelum login
 
 #### Output
-- daftar bagian UI yang harus dipisahkan
+- daftar titik integrasi yang harus diubah
 
-### 2. Tentukan pembagian route final
-Tujuan: membuat struktur dashboard yang tidak membingungkan.
+### 2. Tentukan model approval final
+Tujuan: jangan coding sebelum aturan approval disepakati.
 
 #### Keputusan yang disarankan
-- `/dashboard` hanya untuk redirect
-- `/dashboard/admin` untuk admin
-- `/dashboard/kasir` untuk kasir
+- user baru default `pending`
+- admin yang memberi approval
+- approval sekaligus memberi role
+- login hanya boleh jika status `approved`
 
 #### Output
-- struktur route final disepakati sebelum coding
+- model approval final jelas dan tidak berubah-ubah
 
-### 3. Buat aturan redirect berdasarkan role
-Tujuan: setelah login, user langsung diarahkan ke dashboard yang tepat.
-
-#### Task
-- cek role user dari session atau assignment
-- jika role admin, arahkan ke `/dashboard/admin`
-- jika role kasir, arahkan ke `/dashboard/kasir`
-- jika role tidak valid, tampilkan fallback yang aman
-
-#### Acceptance Criteria
-- admin tidak masuk ke dashboard kasir
-- kasir tidak masuk ke dashboard admin
-- halaman `/dashboard` tidak menampilkan UI campuran
-
-### 4. Pisahkan layout admin dan kasir
-Tujuan: setiap area punya identitas visual dan navigasi sendiri.
+### 3. Tambahkan migration approval status
+Tujuan: database punya tempat untuk menyimpan status approval.
 
 #### Task
-- buat layout admin khusus
-- buat layout kasir khusus
-- tambahkan sidebar atau navigasi sesuai role
-- sediakan tombol logout pada masing-masing area
-
-#### Catatan
-- layout admin boleh lebih lengkap
-- layout kasir harus lebih ringkas dan fokus transaksi
+- tambah kolom approval pada `users`
+- buat index jika diperlukan
+- pastikan user baru default `pending`
 
 #### Acceptance Criteria
-- admin dan kasir punya layout berbeda
-- navigasi tiap role lebih sederhana
+- user baru tersimpan sebagai pending
+- status approval bisa dibaca oleh login dan admin UI
 
-### 5. Sederhanakan halaman dashboard admin
-Tujuan: admin hanya melihat data yang berkaitan dengan pengelolaan toko.
+### 4. Ubah flow registrasi
+Tujuan: user yang selesai register langsung tahu bahwa akun belum aktif.
 
 #### Task
-- tampilkan KPI admin
-- tampilkan kartu akses cepat ke master data
-- tampilkan stok menipis
-- tampilkan transaksi ringkas jika diperlukan
+- tetap simpan data registrasi
+- pastikan response register menyebut status pending
+- update UI agar menampilkan pesan menunggu approval
 
 #### Acceptance Criteria
-- dashboard admin terasa seperti pusat kontrol
-- menu operasional kasir tidak mendominasi halaman admin
+- setelah register, user melihat notifikasi approval
+- user tidak mengira akun sudah siap dipakai
 
-### 6. Sederhanakan halaman dashboard kasir
-Tujuan: kasir fokus pada transaksi harian.
+### 5. Ubah flow login
+Tujuan: user pending tidak bisa masuk ke sistem.
 
 #### Task
-- tampilkan KPI kasir
-- tampilkan tombol tambah transaksi
-- tampilkan daftar transaksi terbaru
-- tampilkan info shift atau store aktif
+- cek status approval setelah password valid
+- cek apakah role sudah diberikan
+- tolak login jika status belum `approved`
+- tampilkan pesan yang jelas dan aman
 
 #### Acceptance Criteria
-- dashboard kasir fokus pada pekerjaan transaksi
-- user kasir tidak perlu melihat menu admin
+- user pending gagal login
+- user approved bisa login
 
-### 7. Pisahkan menu berdasarkan role
-Tujuan: user hanya melihat menu yang relevan.
-
-#### Admin menu yang disarankan
-- dashboard admin
-- master produk
-- kategori produk
-- satuan produk
-- customer
-- supplier
-- user role
-- laporan
-
-#### Kasir menu yang disarankan
-- dashboard kasir
-- tambah transaksi
-- riwayat transaksi kasir
-
-#### Acceptance Criteria
-- menu admin dan kasir tidak bercampur
-- struktur menu mudah dipelihara
-
-### 8. Proteksi route berdasarkan role
-Tujuan: user tidak bisa membuka area yang bukan haknya.
+### 6. Buat halaman atau komponen approval admin
+Tujuan: admin bisa memproses user baru.
 
 #### Task
-- tambahkan pengecekan role pada route admin
-- tambahkan pengecekan role pada route kasir
-- redirect ke halaman yang sesuai jika akses tidak valid
+- tampilkan daftar user pending
+- sediakan tombol approve
+- sediakan aksi reject jika diperlukan
+- sediakan pilihan role saat approval
 
 #### Acceptance Criteria
-- akses manual ke URL role lain ditolak
-- data sensitif tidak bisa dibuka oleh role yang salah
+- admin dapat menyetujui user dari UI
+- role dapat diberikan pada saat approval
 
-### 9. Rapikan data ringkasan per role
-Tujuan: data yang tampil sesuai kebutuhan kerja masing-masing role.
+### 7. Hubungkan approval dengan role assignment
+Tujuan: approval punya efek nyata ke hak akses user.
 
-#### Admin
-- omzet harian
-- omzet bulanan
-- produk aktif
-- customer dan supplier
-- low stock
-
-#### Kasir
-- transaksi hari ini
-- omzet hari ini
-- rata-rata transaksi
-- daftar transaksi terbaru
+#### Task
+- saat approve, buat atau update assignment role
+- simpan store yang dipakai jika sistem membutuhkannya
+- pastikan user tanpa role tetap tidak bisa login
 
 #### Acceptance Criteria
-- KPI tiap halaman relevan dengan peran pengguna
+- approval menghasilkan role yang valid
+- login baru aktif setelah role tersedia
 
-### 10. Uji manual end-to-end
-Tujuan: memastikan redirect dan pemisahan dashboard berjalan benar.
+### 8. Tambahkan feedback UI yang jelas
+Tujuan: user dan admin memahami status akun tanpa bingung.
+
+#### Task
+- tampilkan badge pending di admin
+- tampilkan notifikasi pending di register
+- tampilkan pesan penolakan jika status rejected
+
+#### Acceptance Criteria
+- status akun mudah dipahami pengguna
+
+### 9. Uji manual end-to-end
+Tujuan: memastikan alur register sampai approval bekerja benar.
 
 #### Skenario Uji
-1. login sebagai admin
-2. pastikan masuk ke `/dashboard/admin`
-3. login sebagai kasir
-4. pastikan masuk ke `/dashboard/kasir`
-5. akses manual dashboard role lain
-6. pastikan ditolak atau diarahkan ulang
-7. cek menu yang muncul hanya menu role tersebut
+1. user register
+2. user melihat pesan menunggu approval
+3. user coba login
+4. sistem menolak login karena pending
+5. admin membuka daftar pending user
+6. admin approve user dan memberi role
+7. user login kembali
+8. login berhasil
 
 ## Urutan Implementasi Teknis
 Urutan kerja yang disarankan:
-1. audit dashboard yang ada
-2. tetapkan struktur route final
-3. buat redirect berdasarkan role
-4. pisahkan layout admin dan kasir
-5. rapikan dashboard admin
-6. rapikan dashboard kasir
-7. pisahkan menu
-8. tambahkan proteksi route
+1. audit flow register dan login
+2. tentukan model approval final
+3. tambah migration approval status
+4. ubah response registrasi
+5. ubah validasi login
+6. buat UI approval admin
+7. sambungkan approval ke role assignment
+8. tambahkan notifikasi UI
 9. uji manual
 
 ## Pembagian Task Untuk Junior Programmer / AI Murah
@@ -265,245 +299,65 @@ Setiap task harus kecil dan spesifik.
 ### Format Task Yang Disarankan
 - tujuan
 - file yang diubah
-- role yang terdampak
-- route yang terdampak
+- status user yang terdampak
+- role admin yang terdampak
 - output yang diharapkan
 - langkah uji manual
 
 ### Contoh Task Yang Baik
-- buat redirect dashboard berdasarkan role
-- buat layout admin terpisah
-- buat layout kasir terpisah
-- rapikan menu kasir
-- rapikan menu admin
+- tambah status approval pada tabel users
+- tolak login jika status pending
+- tampilkan notifikasi menunggu approval setelah register
+- buat daftar user pending di admin
+- approve user dan berikan role
 
 ### Contoh Task Yang Terlalu Besar
-- perbaiki semua dashboard aplikasi
-- buat sistem role baru
-- redesign semua halaman admin dan kasir sekaligus
+- perbaiki seluruh sistem auth
+- buat sistem approval kompleks
+- redesign semua halaman user dan admin sekaligus
 
 ## Daftar Issue Kecil Yang Direkomendasikan
-1. Audit struktur dashboard saat ini
-2. Tentukan route final untuk admin dan kasir
-3. Buat redirect setelah login berdasarkan role
-4. Buat layout khusus admin
-5. Buat layout khusus kasir
-6. Pisahkan menu admin dan kasir
-7. Rapikan dashboard admin
-8. Rapikan dashboard kasir
-9. Proteksi route admin dan kasir
-10. Uji manual flow dashboard berdasarkan role
-
-## Backlog Per File
-Bagian ini memecah pekerjaan menjadi issue kecil yang lebih aman untuk junior programmer atau model AI murah.
-
-### 1. `src/app/dashboard/page.tsx`
-Peran file ini harus dipersempit menjadi halaman penentu arah.
-
-#### Tugas
-- ubah halaman ini menjadi redirect based on role
-- jangan tampilkan ringkasan campuran admin dan kasir
-- jika role admin, arahkan ke `/dashboard/admin`
-- jika role kasir, arahkan ke `/dashboard/kasir`
-- jika role tidak ditemukan, arahkan ke fallback yang aman
-
-#### Output yang diharapkan
-- `/dashboard` tidak lagi menjadi halaman dashboard campuran
-
-### 2. `src/app/dashboard/admin/layout.tsx`
-Layout admin menjadi shell utama area admin.
-
-#### Tugas
-- pertahankan proteksi admin access
-- rapikan struktur sidebar dan header admin
-- pastikan navigasi admin hanya berisi menu admin
-- sediakan tombol logout dan kembali ke dashboard bila diperlukan
-
-#### Output yang diharapkan
-- admin memiliki layout yang konsisten dan mudah dipakai
-
-### 3. `src/app/dashboard/kasir/layout.tsx`
-File ini perlu dibuat jika area kasir ingin punya layout sendiri.
-
-#### Tugas
-- buat layout kasir terpisah
-- tampilkan navigasi kasir yang ringkas
-- sediakan tombol logout
-- arahkan kembali ke dashboard kasir jika user berada di area transaksi
-
-#### Output yang diharapkan
-- kasir memiliki shell UI tersendiri dan tidak bercampur dengan admin
-
-### 4. `src/app/dashboard/admin/page.tsx`
-Halaman ini menjadi ringkasan khusus admin.
-
-#### Tugas
-- tampilkan KPI admin
-- tampilkan shortcut master data
-- tampilkan stok menipis
-- hilangkan elemen yang terlalu operasional untuk kasir
-
-#### Output yang diharapkan
-- admin melihat pusat kontrol toko, bukan dashboard campuran
-
-### 5. `src/app/dashboard/kasir/page.tsx`
-Halaman ini menjadi ringkasan khusus kasir.
-
-#### Tugas
-- tampilkan KPI harian kasir
-- tampilkan tombol tambah transaksi
-- tampilkan transaksi terbaru
-- tampilkan informasi store aktif atau shift aktif
-
-#### Output yang diharapkan
-- kasir fokus ke transaksi harian
-
-### 6. `src/components/admin/admin-nav.tsx`
-Komponen ini harus dipastikan benar-benar hanya berisi menu admin.
-
-#### Tugas
-- cek daftar menu admin
-- hapus menu yang bukan domain admin
-- pastikan label dan urutan menu rapi
-
-#### Output yang diharapkan
-- navigasi admin jelas dan tidak bercampur
-
-### 7. Komponen navigasi kasir
-Jika belum ada, buat komponen baru untuk menu kasir.
-
-#### Rekomendasi file
-- `src/components/kasir/kasir-nav.tsx`
-
-#### Tugas
-- buat menu singkat untuk kasir
-- isi menu hanya yang relevan dengan transaksi
-- hindari menu master data dan laporan kompleks
-
-#### Output yang diharapkan
-- kasir punya navigasi ringkas yang mudah dipahami
-
-### 8. `src/components/auth/auth-card.tsx`
-Halaman login harus mengikuti redirect role setelah autentikasi berhasil.
-
-#### Tugas
-- pastikan hasil login mengarahkan user ke dashboard yang sesuai
-- jika role tidak tersedia, tampilkan fallback aman
-- jangan arahkan semua user ke satu dashboard yang sama
-
-#### Output yang diharapkan
-- login admin dan kasir menghasilkan tujuan yang berbeda
-
-### 9. `src/app/api/login/route.ts`
-API login harus mengembalikan informasi yang cukup untuk redirect role.
-
-#### Tugas
-- pastikan session atau response login memuat identitas role yang bisa dibaca frontend
-- jika perlu, ambil role aktif dari assignment user-store-role
-
-#### Output yang diharapkan
-- frontend bisa memutuskan redirect tanpa logika yang berantakan
-
-### 10. `src/lib/auth/*`
-Jika perlu, buat helper kecil untuk pemetaan role dan redirect.
-
-#### Rekomendasi file baru
-- `src/lib/auth/role-redirect.ts`
-- `src/lib/auth/role-guards.ts`
-
-#### Tugas
-- buat helper menentukan tujuan dashboard berdasarkan role
-- buat helper validasi akses admin dan kasir
-
-#### Output yang diharapkan
-- logika role tidak disalin di banyak file
-
-## Backlog Issue Berdasarkan Urutan Eksekusi
-Urutan ini cocok untuk pengerjaan bertahap.
-
-### Issue 1
-Audit struktur dashboard dan identifikasi bagian yang campur.
-
-### Issue 2
-Buat helper redirect berdasarkan role.
-
-### Issue 3
-Ubah `/dashboard` menjadi halaman redirect.
-
-### Issue 4
-Rapikan layout admin.
-
-### Issue 5
-Buat layout kasir terpisah.
-
-### Issue 6
-Refactor halaman admin menjadi dashboard kontrol.
-
-### Issue 7
-Refactor halaman kasir menjadi dashboard operasional.
-
-### Issue 8
-Pisahkan menu admin dan kasir.
-
-### Issue 9
-Tambahkan proteksi route untuk admin dan kasir.
-
-### Issue 10
-Lakukan uji manual end-to-end.
-
-## Format Issue Yang Disarankan
-Setiap issue sebaiknya hanya berisi:
-- tujuan
-- file yang diubah
-- input yang dibutuhkan
-- output yang diharapkan
-- acceptance criteria
-- langkah uji manual
-
-## Contoh Pembagian Issue Kecil
-
-### Issue Kecil A
-Ubah `src/app/dashboard/page.tsx` agar hanya melakukan redirect role.
-
-### Issue Kecil B
-Buat `src/app/dashboard/kasir/layout.tsx` dengan navigasi kasir ringkas.
-
-### Issue Kecil C
-Refactor `src/app/dashboard/kasir/page.tsx` agar hanya menampilkan KPI transaksi.
-
-### Issue Kecil D
-Pisahkan menu admin dari menu kasir di komponen navigasi.
-
-### Issue Kecil E
-Tambahkan guard akses role di area admin dan kasir.
+1. Audit flow register dan login saat ini
+2. Tambahkan status approval pada tabel users
+3. Ubah response registrasi menjadi pending approval
+4. Ubah validasi login agar menolak user pending
+5. Tampilkan notifikasi menunggu approval setelah register
+6. Buat halaman approval admin
+7. Buat aksi approve dan reject user
+8. Sambungkan approval dengan pemberian role
+9. Tambahkan badge status user
+10. Uji manual alur register sampai login
 
 ## Skenario Uji Manual Minimal
-- admin login masuk ke area admin
-- kasir login masuk ke area kasir
-- dashboard `/dashboard` tidak menampilkan UI campuran
-- admin tidak bisa membuka area kasir
-- kasir tidak bisa membuka area admin
-- menu yang tampil sesuai role
+- user register sukses
+- user melihat pesan menunggu approval admin
+- user pending gagal login
+- admin melihat user pending
+- admin approve user dan memberi role
+- user approved bisa login
+- user rejected tetap tidak bisa login
 
 ## Definition of Done
 Satu issue dianggap selesai jika:
-- role routing berjalan benar
-- layout sudah dipisahkan
-- menu sudah relevan dengan role
-- data dashboard sesuai role
-- akses lintas role ditolak
+- status pending tersimpan benar
+- login user pending ditolak
+- admin bisa approve user
+- role diberikan saat approval
+- UI menampilkan pesan yang jelas
 - ada pengujian manual
 
 ## Catatan Penting Untuk Implementor
-- jangan mempertahankan satu dashboard campuran
-- jangan menampilkan menu admin ke kasir
-- jangan menampilkan menu kasir ke admin jika tidak perlu
-- jangan ubah struktur login tanpa alasan kuat
-- jangan membuat route baru tanpa aturan redirect yang jelas
+- jangan membuat user baru langsung aktif
+- jangan mengizinkan login tanpa approval
+- jangan menyimpan status approval secara tidak konsisten
+- jangan memberi role sebelum proses approval jelas
+- jangan membocorkan detail internal saat login gagal
 
 ## Penutup
-Target terbaik untuk perubahan ini adalah dashboard yang tegas pembagiannya:
-- admin menjadi area kontrol sistem
-- kasir menjadi area operasional transaksi
+Target terbaik untuk fitur ini adalah alur registrasi yang aman dan terkontrol:
+- user daftar
+- user menunggu approval
+- admin memberi role
+- user baru bisa login
 
-Dengan pembagian ini, UI lebih rapi, alur kerja lebih jelas, dan pengembangan fitur berikutnya lebih mudah dikerjakan secara bertahap.
+Dengan alur ini, sistem POS lebih tertata dan admin punya kontrol penuh atas akun yang boleh masuk ke aplikasi.

@@ -97,7 +97,8 @@ export function AuthCard({ userEmail }: { userEmail?: string | null }) {
         setMode("login");
         setStatus({
           type: "success",
-          message: "Registrasi berhasil. Lanjutkan login dengan akun baru Anda.",
+          message:
+            "Registrasi berhasil. Akun Anda menunggu approval admin dan pemberian role sebelum bisa login.",
         });
         return;
       }

@@ -54,14 +54,14 @@ export async function GET() {
     );
   }
 
-  const typedAssignments = (scopedAssignments ?? []) as ScopedAssignmentRow[];
+  const typedAssignments = (scopedAssignments ?? []) as unknown as ScopedAssignmentRow[];
   const userIds = [...new Set(typedAssignments.map((row) => row.user_id).filter(Boolean))];
 
   let users: User[] = [];
   if (userIds.length > 0) {
     const { data: usersData, error: usersError } = await supabase
       .from("users")
-      .select("id, name, email, is_active, created_at, updated_at, last_login_at")
+      .select("id, name, email, is_active, approval_status, approved_at, approved_by, approval_note, created_at, updated_at, last_login_at")
       .in("id", userIds)
       .order("created_at", { ascending: false });
 
@@ -72,12 +72,24 @@ export async function GET() {
     users = (usersData ?? []) as User[];
   }
 
+  const { data: pendingUsersData, error: pendingUsersError } = await supabase
+    .from("users")
+    .select("id, name, email, is_active, approval_status, approved_at, approved_by, approval_note, created_at, updated_at, last_login_at")
+    .eq("approval_status", "pending")
+    .order("created_at", { ascending: false });
+
+  if (pendingUsersError) {
+    return NextResponse.json({ error: pendingUsersError.message }, { status: 400 });
+  }
+
+  const pendingUsers = (pendingUsersData ?? []) as User[];
+
   const assignmentByUserId = new Map<string, UserStoreRole[]>();
   for (const assignment of typedAssignments) {
     const userId = String(assignment.user_id ?? "");
     if (!userId) continue;
     const list = assignmentByUserId.get(userId) ?? [];
-    list.push(assignment as UserStoreRole);
+    list.push(assignment as unknown as UserStoreRole);
     assignmentByUserId.set(userId, list);
   }
 
@@ -86,9 +98,17 @@ export async function GET() {
     user_store_roles: assignmentByUserId.get(user.id) ?? [],
   }));
 
+  const scopedUserIds = new Set(scopedUsers.map((user) => user.id));
+  const pendingWithoutAssignment = pendingUsers
+    .filter((user) => !scopedUserIds.has(user.id))
+    .map((user) => ({
+      ...user,
+      user_store_roles: [],
+    }));
+
   return NextResponse.json({
     data: {
-      users: scopedUsers,
+      users: [...pendingWithoutAssignment, ...scopedUsers],
       roles: roles ?? [],
       stores: stores ?? [],
     },
@@ -146,6 +166,22 @@ export async function POST(request: Request) {
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 400 });
   }
+
+  const { error: approveError } = await supabase
+    .from("users")
+    .update({
+      approval_status: "approved",
+      approved_at: new Date().toISOString(),
+      approved_by: auth.session.userId,
+      approval_note: "Approved melalui assignment role admin",
+      is_active: true,
+    })
+    .eq("id", body.userId);
+
+  if (approveError) {
+    return NextResponse.json({ error: approveError.message }, { status: 400 });
+  }
+
   await writeAuditLogSafe({
     actorUserId: auth.session.userId,
     action: "user_store_role.assign",
@@ -156,6 +192,7 @@ export async function POST(request: Request) {
       storeId: body.storeId,
       roleId: body.roleId,
       isActive: true,
+      approvalStatus: "approved",
     },
   });
 

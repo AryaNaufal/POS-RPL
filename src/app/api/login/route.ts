@@ -40,7 +40,7 @@ export async function POST(request: Request) {
 
   const { data, error } = await supabase
     .from("users")
-    .select("id, name, email, password_hash")
+    .select("id, name, email, password_hash, is_active, approval_status")
     .eq("email", normalizedEmail)
     .maybeSingle<User>();
 
@@ -69,6 +69,37 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { error: "Email atau Password salah" },
       { status: 401 }
+    );
+  }
+
+  if (!data.is_active) {
+    return NextResponse.json(
+      { error: "Akun Anda sedang nonaktif. Hubungi admin." },
+      { status: 403 }
+    );
+  }
+
+  if (data.approval_status !== "approved") {
+    return NextResponse.json(
+      { error: "Akun Anda belum di-approve admin. Silakan tunggu proses approval." },
+      { status: 403 }
+    );
+  }
+
+  const { count: activeRoleCount, error: roleCountError } = await supabase
+    .from("user_store_roles")
+    .select("id", { count: "exact", head: true })
+    .eq("user_id", data.id)
+    .eq("is_active", true);
+
+  if (roleCountError) {
+    return NextResponse.json({ error: roleCountError.message }, { status: 400 });
+  }
+
+  if (!activeRoleCount) {
+    return NextResponse.json(
+      { error: "Akun sudah di-approve tetapi role belum diberikan admin." },
+      { status: 403 }
     );
   }
 
