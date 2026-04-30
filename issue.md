@@ -1,423 +1,509 @@
-# Planning Implementasi Reset Password Pengguna
+# Planning Implementasi Dashboard Berdasarkan Role
 
 ## Judul Proyek
 Perancangan Sistem Informasi Point of Sale (POS) pada Toko UMKM untuk Meningkatkan Efektivitas Pengelolaan Transaksi Menggunakan Model SDLC Waterfall
 
 ## Tujuan Dokumen
-Dokumen ini menjadi acuan implementasi fitur reset password untuk pengguna pada sistem POS manual login.
+Dokumen ini menjadi acuan implementasi perbaikan tampilan dashboard agar sesuai dengan role masing-masing pengguna.
 
 Fokusnya adalah:
-- tetap memakai skema auth yang sudah ada
-- menambah alur reset password yang aman dan sederhana
-- membuat tahapan kerja yang jelas untuk junior programmer atau model AI yang lebih murah
-
-## Konteks Sistem Saat Ini
-Sistem auth yang dipakai sekarang masih manual, bukan Supabase Auth. Alur yang sudah berjalan:
-- registrasi menulis `password_hash` ke tabel `users`
-- login membaca `password_hash` dari tabel `users`
-- session dibuat dari endpoint login manual
-
-File yang paling relevan:
-- [`src/app/api/users/route.ts`](/c:/code/pos-rpl/src/app/api/users/route.ts)
-- [`src/app/api/login/route.ts`](/c:/code/pos-rpl/src/app/api/login/route.ts)
-- [`src/components/auth/auth-card.tsx`](/c:/code/pos-rpl/src/components/auth/auth-card.tsx)
-- [`src/components/auth/auth-form.tsx`](/c:/code/pos-rpl/src/components/auth/auth-form.tsx)
-- [`supabase/migrations/0002_create_manual_users_table.sql`](/c:/code/pos-rpl/supabase/migrations/0002_create_manual_users_table.sql)
+- dashboard admin menampilkan area admin
+- dashboard kasir menampilkan area kasir
+- tampilan, menu, dan data yang muncul harus berbeda sesuai role
+- tahapan kerja dibuat jelas agar bisa dikerjakan oleh junior programmer atau model AI yang lebih murah
 
 ## Masalah Yang Ingin Diselesaikan
-Saat ini pengguna yang lupa password belum punya alur pemulihan akun.
+Saat ini dashboard masih cenderung campur antara kebutuhan admin dan kasir.
 
 Akibatnya:
-- user harus dibantu manual oleh admin atau developer
-- proses login bisa terhambat
-- pengalaman pengguna kurang baik
+- user melihat menu yang tidak relevan dengan rolenya
+- navigasi menjadi tidak fokus
+- area kerja admin dan kasir kurang tegas
+- struktur UI sulit dikembangkan untuk fitur berikutnya
 
-## Target Fitur
-User dapat:
-1. membuka halaman login
-2. memilih menu `Lupa Password`
-3. memasukkan email akun
-4. menerima tautan reset password
-5. membuka halaman reset password
-6. membuat password baru
-7. login kembali dengan password baru
-
-## Hasil Akhir Yang Diharapkan
-Setelah fitur selesai:
-- pengguna bisa reset password sendiri
-- password lama tidak bisa dipakai lagi setelah reset berhasil
-- token reset hanya berlaku sekali
-- token reset memiliki masa berlaku
-- UI reset password sederhana dan mudah dipahami
-
-## Keputusan Teknis Yang Direkomendasikan
-Gunakan flow reset password berbasis token.
-
-Alur yang disarankan:
-1. user request reset password dengan email
-2. sistem membuat token reset yang acak dan sulit ditebak
-3. token disimpan di database dengan expiry time
-4. sistem mengirim link reset password ke email user
-5. user membuka link dan memasukkan password baru
-6. sistem memvalidasi token lalu update `password_hash`
-7. token ditandai sudah dipakai
-
-## Kenapa Flow Ini Dipilih
-- cocok dengan sistem login manual yang sudah ada
-- lebih aman daripada reset password langsung tanpa token
-- mudah dijelaskan dalam dokumen Waterfall
-- bisa dikerjakan bertahap oleh junior programmer
+## Target Akhir
+Setelah implementasi selesai:
+- user dengan role admin masuk ke area admin
+- user dengan role kasir masuk ke area kasir
+- halaman dashboard awal melakukan redirect sesuai role
+- setiap role memiliki layout, menu, dan ringkasan data yang berbeda
 
 ## Scope Fitur
-Fitur ini hanya mencakup:
-- request reset password
-- validasi token reset
-- halaman reset password
-- update password baru
-- invalidasi token lama
+Planning ini hanya membahas pemisahan dashboard berdasarkan role.
+
+Termasuk di dalam scope:
+- penentuan role setelah login
+- redirect ke dashboard yang sesuai
+- layout khusus admin
+- layout khusus kasir
+- menu khusus tiap role
+- data ringkasan khusus tiap role
+- proteksi route berdasarkan role
 
 Tidak wajib pada issue ini:
-- reset password via admin panel
-- multi-step recovery yang kompleks
-- login via magic link
-- 2FA
-- histori reset password lengkap
+- penambahan role baru
+- multi-store penuh
+- permission granular per fitur
+- laporan lanjutan
+- desain ulang seluruh aplikasi
 
-## Struktur Implementasi Yang Disarankan
+## Keputusan Teknis Yang Direkomendasikan
+Gunakan pendekatan route terpisah untuk dashboard per role.
 
-### 1. Tabel token reset password
-Tambahkan tabel baru untuk menyimpan token reset.
+Contoh struktur yang disarankan:
+- `/dashboard` sebagai halaman penentu arah
+- `/dashboard/admin` untuk area admin
+- `/dashboard/kasir` untuk area kasir
 
-Contoh nama tabel:
-- `password_reset_tokens`
+Gunakan layout yang berbeda untuk masing-masing area agar:
+- menu mudah dipisahkan
+- komponen lebih rapi
+- pengembangan berikutnya tidak saling mengganggu
 
-Kolom yang disarankan:
-- `id`
-- `user_id`
-- `token_hash`
-- `expires_at`
-- `used_at`
-- `created_at`
+## Prinsip Implementasi
+1. Admin dan kasir tidak memakai dashboard yang sama.
+2. Setiap role hanya melihat menu yang relevan.
+3. Ringkasan data di dashboard harus sesuai kebutuhan role.
+4. Route harus diproteksi agar user tidak bisa masuk ke area role lain.
+5. UI harus sederhana dan konsisten dengan gaya POS toko.
 
-Catatan:
-- simpan hash token, bukan token mentah
-- token hanya dipakai sekali
-- token harus punya batas waktu
+## Peran Masing-Masing Dashboard
 
-### 2. Endpoint request reset password
-Buat endpoint untuk menerima email user dan membuat token reset.
+### 1. Dashboard Admin
+Area admin berisi pengelolaan sistem dan master data.
 
-Contoh file:
-- `src/app/api/auth/password-reset/request/route.ts`
+Isi yang cocok untuk admin:
+- ringkasan omzet dan transaksi
+- jumlah produk aktif
+- stok menipis
+- customer dan supplier
+- shortcut ke master produk
+- shortcut ke master kategori
+- shortcut ke master satuan
+- shortcut ke manajemen user
+- shortcut ke laporan
 
-Tanggung jawab:
-- validasi email
-- cari user berdasarkan email
-- buat token acak
-- simpan hash token ke database
-- kirim email reset password
+### 2. Dashboard Kasir
+Area kasir berisi operasional transaksi harian.
 
-### 3. Endpoint verifikasi token
-Buat endpoint atau helper untuk mengecek token sebelum user reset password.
-
-Contoh file:
-- `src/app/api/auth/password-reset/verify/route.ts`
-
-Tanggung jawab:
-- cek token ada atau tidak
-- cek token belum dipakai
-- cek token belum expired
-- kembalikan status token valid / tidak valid
-
-### 4. Endpoint submit password baru
-Buat endpoint untuk menyimpan password baru setelah token valid.
-
-Contoh file:
-- `src/app/api/auth/password-reset/confirm/route.ts`
-
-Tanggung jawab:
-- validasi token
-- validasi password baru
-- hash password baru
-- update kolom `password_hash` di tabel `users`
-- tandai token sebagai sudah dipakai
-
-### 5. Halaman request reset password
-Buat halaman form untuk user memasukkan email.
-
-Contoh file:
-- `src/app/reset-password/page.tsx`
-
-Tanggung jawab:
-- form input email
-- tombol kirim link reset
-- tampilkan pesan sukses atau error
-- tidak membuka informasi sensitif tentang apakah email terdaftar atau tidak
-
-### 6. Halaman reset password
-Buat halaman untuk password baru setelah user klik link email.
-
-Contoh file:
-- `src/app/reset-password/[token]/page.tsx`
-
-Tanggung jawab:
-- ambil token dari URL
-- validasi token
-- tampilkan form password baru dan konfirmasi password
-- kirim password baru ke endpoint confirm
-
-### 7. Komponen UI auth
-Tambahkan akses ke fitur reset password dari halaman login.
-
-Contoh file:
-- [`src/components/auth/auth-card.tsx`](/c:/code/pos-rpl/src/components/auth/auth-card.tsx)
-- [`src/components/auth/auth-form.tsx`](/c:/code/pos-rpl/src/components/auth/auth-form.tsx)
-
-Tanggung jawab:
-- tampilkan link `Lupa Password`
-- arahkan user ke halaman request reset password
-- jaga agar flow login tetap sederhana
-
-### 8. Pengiriman email
-Buat mekanisme pengiriman email reset password.
-
-Rekomendasi:
-- gunakan SMTP atau provider email yang mudah dipakai
-- pisahkan logic email ke helper khusus
-
-Contoh file:
-- `src/lib/email/send-password-reset.ts`
-
-Tanggung jawab:
-- membangun URL reset password
-- mengirim email berisi link reset
-- menangani error pengiriman
+Isi yang cocok untuk kasir:
+- ringkasan transaksi hari ini
+- omzet hari ini
+- akses cepat ke tambah transaksi
+- daftar transaksi terbaru
+- status shift atau aktivitas kasir
+- informasi store aktif
 
 ## Tahapan Implementasi
 
-### 1. Audit auth manual yang sudah ada
-Tujuan: memahami alur login dan registrasi sebelum menambah reset password.
+### 1. Audit struktur dashboard saat ini
+Tujuan: memahami komponen yang masih campur antara admin dan kasir.
 
 #### File yang dibaca
-- [`src/app/api/login/route.ts`](/c:/code/pos-rpl/src/app/api/login/route.ts)
-- [`src/app/api/users/route.ts`](/c:/code/pos-rpl/src/app/api/users/route.ts)
-- [`src/components/auth/auth-card.tsx`](/c:/code/pos-rpl/src/components/auth/auth-card.tsx)
-- [`src/components/auth/auth-form.tsx`](/c:/code/pos-rpl/src/components/auth/auth-form.tsx)
+- `src/app/dashboard/page.tsx`
+- `src/app/dashboard/admin/page.tsx`
+- `src/app/dashboard/kasir/page.tsx`
+- `src/app/dashboard/admin/layout.tsx`
 
 #### Yang harus dipahami
-- password disimpan dalam format hash
-- login mencocokkan password terhadap hash
-- register membuat hash baru
-- session dibuat setelah login berhasil
+- halaman mana yang menjadi landing setelah login
+- menu mana yang masih ditampilkan ke semua role
+- data apa yang sebenarnya khusus admin
+- data apa yang khusus kasir
 
 #### Output
-- implementor tahu titik integrasi reset password
+- daftar bagian UI yang harus dipisahkan
 
-### 2. Tentukan flow reset password final
-Tujuan: jangan coding sebelum alur final disepakati.
+### 2. Tentukan pembagian route final
+Tujuan: membuat struktur dashboard yang tidak membingungkan.
 
-#### Flow yang disarankan
-1. user klik `Lupa Password`
-2. user isi email
-3. sistem kirim tautan reset
-4. user buka tautan
-5. user isi password baru
-6. sistem update password
-7. user login kembali
+#### Keputusan yang disarankan
+- `/dashboard` hanya untuk redirect
+- `/dashboard/admin` untuk admin
+- `/dashboard/kasir` untuk kasir
 
 #### Output
-- flow final jelas dan tidak berubah-ubah
+- struktur route final disepakati sebelum coding
 
-### 3. Tambahkan migration token reset password
-Tujuan: database punya tempat yang aman untuk menyimpan token reset.
-
-#### Task
-- buat tabel `password_reset_tokens`
-- tambahkan index untuk `user_id` dan `expires_at`
-- simpan `token_hash`, bukan token mentah
-- sediakan kolom `used_at`
-
-#### Acceptance Criteria
-- token reset bisa disimpan
-- token reset bisa dicek masa berlakunya
-- token reset bisa ditandai sudah dipakai
-
-### 4. Buat endpoint request reset password
-Tujuan: user bisa meminta reset password memakai email.
+### 3. Buat aturan redirect berdasarkan role
+Tujuan: setelah login, user langsung diarahkan ke dashboard yang tepat.
 
 #### Task
-- validasi email
-- cari user berdasarkan email
-- buat token acak yang kuat
-- simpan hash token ke database
-- kirim email reset password
-
-#### Catatan Penting
-- jangan mengembalikan pesan yang membocorkan email terdaftar atau tidak
-- response untuk frontend sebaiknya generik
+- cek role user dari session atau assignment
+- jika role admin, arahkan ke `/dashboard/admin`
+- jika role kasir, arahkan ke `/dashboard/kasir`
+- jika role tidak valid, tampilkan fallback yang aman
 
 #### Acceptance Criteria
-- request reset password berhasil diproses
-- token tersimpan
-- email reset terkirim
+- admin tidak masuk ke dashboard kasir
+- kasir tidak masuk ke dashboard admin
+- halaman `/dashboard` tidak menampilkan UI campuran
 
-### 5. Buat halaman request reset password
-Tujuan: user punya UI untuk meminta reset password.
+### 4. Pisahkan layout admin dan kasir
+Tujuan: setiap area punya identitas visual dan navigasi sendiri.
 
 #### Task
-- buat form input email
-- buat tombol kirim link reset
-- tampilkan feedback sukses / gagal
-- tambahkan link kembali ke login
+- buat layout admin khusus
+- buat layout kasir khusus
+- tambahkan sidebar atau navigasi sesuai role
+- sediakan tombol logout pada masing-masing area
+
+#### Catatan
+- layout admin boleh lebih lengkap
+- layout kasir harus lebih ringkas dan fokus transaksi
 
 #### Acceptance Criteria
-- user dapat request reset password dari UI
-- halaman sederhana dan mudah dipahami
+- admin dan kasir punya layout berbeda
+- navigasi tiap role lebih sederhana
 
-### 6. Buat halaman reset password
-Tujuan: user bisa mengisi password baru dari link email.
+### 5. Sederhanakan halaman dashboard admin
+Tujuan: admin hanya melihat data yang berkaitan dengan pengelolaan toko.
 
 #### Task
-- ambil token dari URL
-- cek validasi token
-- tampilkan form password baru
-- tampilkan konfirmasi password
-- kirim password baru ke endpoint confirm
+- tampilkan KPI admin
+- tampilkan kartu akses cepat ke master data
+- tampilkan stok menipis
+- tampilkan transaksi ringkas jika diperlukan
 
 #### Acceptance Criteria
-- password baru dapat disimpan
-- token tidak bisa dipakai dua kali
+- dashboard admin terasa seperti pusat kontrol
+- menu operasional kasir tidak mendominasi halaman admin
 
-### 7. Buat endpoint confirm reset password
-Tujuan: password lama benar-benar diganti dengan password baru.
+### 6. Sederhanakan halaman dashboard kasir
+Tujuan: kasir fokus pada transaksi harian.
 
 #### Task
-- validasi token
-- cek expired
-- cek token belum dipakai
-- validasi password baru
-- hash password baru
-- update `users.password_hash`
-- set token sebagai `used`
+- tampilkan KPI kasir
+- tampilkan tombol tambah transaksi
+- tampilkan daftar transaksi terbaru
+- tampilkan info shift atau store aktif
 
 #### Acceptance Criteria
-- password lama tidak berlaku lagi
-- login memakai password baru berhasil
+- dashboard kasir fokus pada pekerjaan transaksi
+- user kasir tidak perlu melihat menu admin
 
-### 8. Tambahkan validasi keamanan
-Tujuan: fitur reset password tidak mudah disalahgunakan.
+### 7. Pisahkan menu berdasarkan role
+Tujuan: user hanya melihat menu yang relevan.
+
+#### Admin menu yang disarankan
+- dashboard admin
+- master produk
+- kategori produk
+- satuan produk
+- customer
+- supplier
+- user role
+- laporan
+
+#### Kasir menu yang disarankan
+- dashboard kasir
+- tambah transaksi
+- riwayat transaksi kasir
+
+#### Acceptance Criteria
+- menu admin dan kasir tidak bercampur
+- struktur menu mudah dipelihara
+
+### 8. Proteksi route berdasarkan role
+Tujuan: user tidak bisa membuka area yang bukan haknya.
 
 #### Task
-- token hanya berlaku sekali
-- token punya masa berlaku
-- password baru minimal panjang aman
-- rate limit request reset jika memungkinkan
-- jangan bocorkan keberadaan email
+- tambahkan pengecekan role pada route admin
+- tambahkan pengecekan role pada route kasir
+- redirect ke halaman yang sesuai jika akses tidak valid
 
 #### Acceptance Criteria
-- token tidak bisa diulang
-- request spam lebih sulit
+- akses manual ke URL role lain ditolak
+- data sensitif tidak bisa dibuka oleh role yang salah
 
-### 9. Integrasikan ke UI auth
-Tujuan: user bisa menemukan fitur reset password dengan mudah.
+### 9. Rapikan data ringkasan per role
+Tujuan: data yang tampil sesuai kebutuhan kerja masing-masing role.
 
-#### Task
-- tambahkan link `Lupa Password`
-- arahkan ke halaman request reset password
-- pastikan desain selaras dengan halaman login/register
+#### Admin
+- omzet harian
+- omzet bulanan
+- produk aktif
+- customer dan supplier
+- low stock
+
+#### Kasir
+- transaksi hari ini
+- omzet hari ini
+- rata-rata transaksi
+- daftar transaksi terbaru
 
 #### Acceptance Criteria
-- flow reset password mudah ditemukan dari login
+- KPI tiap halaman relevan dengan peran pengguna
 
 ### 10. Uji manual end-to-end
-Tujuan: memastikan alur bekerja dari awal sampai akhir.
+Tujuan: memastikan redirect dan pemisahan dashboard berjalan benar.
 
 #### Skenario Uji
-1. buka login
-2. klik `Lupa Password`
-3. isi email
-4. pastikan request berhasil
-5. buka link reset
-6. isi password baru
-7. submit password baru
-8. login dengan password baru
-9. login dengan password lama harus gagal
-
-#### Output
-- fitur reset password terbukti berjalan penuh
+1. login sebagai admin
+2. pastikan masuk ke `/dashboard/admin`
+3. login sebagai kasir
+4. pastikan masuk ke `/dashboard/kasir`
+5. akses manual dashboard role lain
+6. pastikan ditolak atau diarahkan ulang
+7. cek menu yang muncul hanya menu role tersebut
 
 ## Urutan Implementasi Teknis
-Urutan ini penting agar implementor tidak bingung:
-1. audit auth manual
-2. migration token reset
-3. endpoint request reset
-4. halaman request reset
-5. halaman reset password
-6. endpoint confirm reset
-7. validasi keamanan
-8. integrasi UI auth
-9. testing manual
+Urutan kerja yang disarankan:
+1. audit dashboard yang ada
+2. tetapkan struktur route final
+3. buat redirect berdasarkan role
+4. pisahkan layout admin dan kasir
+5. rapikan dashboard admin
+6. rapikan dashboard kasir
+7. pisahkan menu
+8. tambahkan proteksi route
+9. uji manual
 
 ## Pembagian Task Untuk Junior Programmer / AI Murah
-Setiap task harus kecil dan jelas.
+Setiap task harus kecil dan spesifik.
 
 ### Format Task Yang Disarankan
 - tujuan
-- file yang akan diubah
-- tabel yang dipakai
-- endpoint yang dibuat atau diubah
-- input/output
+- file yang diubah
+- role yang terdampak
+- route yang terdampak
+- output yang diharapkan
 - langkah uji manual
 
 ### Contoh Task Yang Baik
-- buat tabel token reset password
-- buat endpoint request reset password
-- buat halaman reset password
+- buat redirect dashboard berdasarkan role
+- buat layout admin terpisah
+- buat layout kasir terpisah
+- rapikan menu kasir
+- rapikan menu admin
 
 ### Contoh Task Yang Terlalu Besar
-- buat fitur auth lengkap
-- buat seluruh keamanan login
-- perbaiki semua halaman user
+- perbaiki semua dashboard aplikasi
+- buat sistem role baru
+- redesign semua halaman admin dan kasir sekaligus
 
 ## Daftar Issue Kecil Yang Direkomendasikan
-Issue berikut bisa diberikan satu per satu ke implementor:
-1. Audit alur auth manual yang sudah ada
-2. Buat migration token reset password
-3. Buat endpoint request reset password
-4. Buat halaman request reset password
-5. Buat endpoint verifikasi token
-6. Buat halaman reset password
-7. Buat endpoint confirm reset password
-8. Tambahkan link reset password di halaman login
-9. Tambahkan validasi keamanan token
-10. Uji manual reset password end-to-end
+1. Audit struktur dashboard saat ini
+2. Tentukan route final untuk admin dan kasir
+3. Buat redirect setelah login berdasarkan role
+4. Buat layout khusus admin
+5. Buat layout khusus kasir
+6. Pisahkan menu admin dan kasir
+7. Rapikan dashboard admin
+8. Rapikan dashboard kasir
+9. Proteksi route admin dan kasir
+10. Uji manual flow dashboard berdasarkan role
+
+## Backlog Per File
+Bagian ini memecah pekerjaan menjadi issue kecil yang lebih aman untuk junior programmer atau model AI murah.
+
+### 1. `src/app/dashboard/page.tsx`
+Peran file ini harus dipersempit menjadi halaman penentu arah.
+
+#### Tugas
+- ubah halaman ini menjadi redirect based on role
+- jangan tampilkan ringkasan campuran admin dan kasir
+- jika role admin, arahkan ke `/dashboard/admin`
+- jika role kasir, arahkan ke `/dashboard/kasir`
+- jika role tidak ditemukan, arahkan ke fallback yang aman
+
+#### Output yang diharapkan
+- `/dashboard` tidak lagi menjadi halaman dashboard campuran
+
+### 2. `src/app/dashboard/admin/layout.tsx`
+Layout admin menjadi shell utama area admin.
+
+#### Tugas
+- pertahankan proteksi admin access
+- rapikan struktur sidebar dan header admin
+- pastikan navigasi admin hanya berisi menu admin
+- sediakan tombol logout dan kembali ke dashboard bila diperlukan
+
+#### Output yang diharapkan
+- admin memiliki layout yang konsisten dan mudah dipakai
+
+### 3. `src/app/dashboard/kasir/layout.tsx`
+File ini perlu dibuat jika area kasir ingin punya layout sendiri.
+
+#### Tugas
+- buat layout kasir terpisah
+- tampilkan navigasi kasir yang ringkas
+- sediakan tombol logout
+- arahkan kembali ke dashboard kasir jika user berada di area transaksi
+
+#### Output yang diharapkan
+- kasir memiliki shell UI tersendiri dan tidak bercampur dengan admin
+
+### 4. `src/app/dashboard/admin/page.tsx`
+Halaman ini menjadi ringkasan khusus admin.
+
+#### Tugas
+- tampilkan KPI admin
+- tampilkan shortcut master data
+- tampilkan stok menipis
+- hilangkan elemen yang terlalu operasional untuk kasir
+
+#### Output yang diharapkan
+- admin melihat pusat kontrol toko, bukan dashboard campuran
+
+### 5. `src/app/dashboard/kasir/page.tsx`
+Halaman ini menjadi ringkasan khusus kasir.
+
+#### Tugas
+- tampilkan KPI harian kasir
+- tampilkan tombol tambah transaksi
+- tampilkan transaksi terbaru
+- tampilkan informasi store aktif atau shift aktif
+
+#### Output yang diharapkan
+- kasir fokus ke transaksi harian
+
+### 6. `src/components/admin/admin-nav.tsx`
+Komponen ini harus dipastikan benar-benar hanya berisi menu admin.
+
+#### Tugas
+- cek daftar menu admin
+- hapus menu yang bukan domain admin
+- pastikan label dan urutan menu rapi
+
+#### Output yang diharapkan
+- navigasi admin jelas dan tidak bercampur
+
+### 7. Komponen navigasi kasir
+Jika belum ada, buat komponen baru untuk menu kasir.
+
+#### Rekomendasi file
+- `src/components/kasir/kasir-nav.tsx`
+
+#### Tugas
+- buat menu singkat untuk kasir
+- isi menu hanya yang relevan dengan transaksi
+- hindari menu master data dan laporan kompleks
+
+#### Output yang diharapkan
+- kasir punya navigasi ringkas yang mudah dipahami
+
+### 8. `src/components/auth/auth-card.tsx`
+Halaman login harus mengikuti redirect role setelah autentikasi berhasil.
+
+#### Tugas
+- pastikan hasil login mengarahkan user ke dashboard yang sesuai
+- jika role tidak tersedia, tampilkan fallback aman
+- jangan arahkan semua user ke satu dashboard yang sama
+
+#### Output yang diharapkan
+- login admin dan kasir menghasilkan tujuan yang berbeda
+
+### 9. `src/app/api/login/route.ts`
+API login harus mengembalikan informasi yang cukup untuk redirect role.
+
+#### Tugas
+- pastikan session atau response login memuat identitas role yang bisa dibaca frontend
+- jika perlu, ambil role aktif dari assignment user-store-role
+
+#### Output yang diharapkan
+- frontend bisa memutuskan redirect tanpa logika yang berantakan
+
+### 10. `src/lib/auth/*`
+Jika perlu, buat helper kecil untuk pemetaan role dan redirect.
+
+#### Rekomendasi file baru
+- `src/lib/auth/role-redirect.ts`
+- `src/lib/auth/role-guards.ts`
+
+#### Tugas
+- buat helper menentukan tujuan dashboard berdasarkan role
+- buat helper validasi akses admin dan kasir
+
+#### Output yang diharapkan
+- logika role tidak disalin di banyak file
+
+## Backlog Issue Berdasarkan Urutan Eksekusi
+Urutan ini cocok untuk pengerjaan bertahap.
+
+### Issue 1
+Audit struktur dashboard dan identifikasi bagian yang campur.
+
+### Issue 2
+Buat helper redirect berdasarkan role.
+
+### Issue 3
+Ubah `/dashboard` menjadi halaman redirect.
+
+### Issue 4
+Rapikan layout admin.
+
+### Issue 5
+Buat layout kasir terpisah.
+
+### Issue 6
+Refactor halaman admin menjadi dashboard kontrol.
+
+### Issue 7
+Refactor halaman kasir menjadi dashboard operasional.
+
+### Issue 8
+Pisahkan menu admin dan kasir.
+
+### Issue 9
+Tambahkan proteksi route untuk admin dan kasir.
+
+### Issue 10
+Lakukan uji manual end-to-end.
+
+## Format Issue Yang Disarankan
+Setiap issue sebaiknya hanya berisi:
+- tujuan
+- file yang diubah
+- input yang dibutuhkan
+- output yang diharapkan
+- acceptance criteria
+- langkah uji manual
+
+## Contoh Pembagian Issue Kecil
+
+### Issue Kecil A
+Ubah `src/app/dashboard/page.tsx` agar hanya melakukan redirect role.
+
+### Issue Kecil B
+Buat `src/app/dashboard/kasir/layout.tsx` dengan navigasi kasir ringkas.
+
+### Issue Kecil C
+Refactor `src/app/dashboard/kasir/page.tsx` agar hanya menampilkan KPI transaksi.
+
+### Issue Kecil D
+Pisahkan menu admin dari menu kasir di komponen navigasi.
+
+### Issue Kecil E
+Tambahkan guard akses role di area admin dan kasir.
 
 ## Skenario Uji Manual Minimal
-- user bisa membuka halaman request reset password
-- user bisa mengirim permintaan reset password
-- token reset tersimpan di database
-- user bisa membuka link reset dari email
-- user bisa mengisi password baru
-- password lama tidak bisa dipakai lagi
-- password baru bisa dipakai untuk login
+- admin login masuk ke area admin
+- kasir login masuk ke area kasir
+- dashboard `/dashboard` tidak menampilkan UI campuran
+- admin tidak bisa membuka area kasir
+- kasir tidak bisa membuka area admin
+- menu yang tampil sesuai role
 
 ## Definition of Done
 Satu issue dianggap selesai jika:
-- fitur utama berjalan
-- validasi dasar ada
-- data tersimpan benar di database
-- UI dapat dipakai
-- tidak membuka celah keamanan yang jelas
-- ada langkah uji manual
+- role routing berjalan benar
+- layout sudah dipisahkan
+- menu sudah relevan dengan role
+- data dashboard sesuai role
+- akses lintas role ditolak
+- ada pengujian manual
 
 ## Catatan Penting Untuk Implementor
-- jangan mengubah mekanisme login manual yang sudah ada tanpa alasan kuat
-- jangan simpan token reset dalam bentuk mentah
-- jangan bocorkan apakah email terdaftar atau tidak
-- jangan membiarkan token berlaku terlalu lama
-- jangan lupa invalidate token setelah dipakai
+- jangan mempertahankan satu dashboard campuran
+- jangan menampilkan menu admin ke kasir
+- jangan menampilkan menu kasir ke admin jika tidak perlu
+- jangan ubah struktur login tanpa alasan kuat
+- jangan membuat route baru tanpa aturan redirect yang jelas
 
 ## Penutup
-Target terbaik untuk fitur ini adalah reset password yang sederhana, aman, dan cocok dengan sistem login manual yang sudah ada.
+Target terbaik untuk perubahan ini adalah dashboard yang tegas pembagiannya:
+- admin menjadi area kontrol sistem
+- kasir menjadi area operasional transaksi
 
-Jika seluruh scope dokumen ini selesai, user akan bisa memulihkan akses akun tanpa bantuan manual dari admin atau developer.
+Dengan pembagian ini, UI lebih rapi, alur kerja lebih jelas, dan pengembangan fitur berikutnya lebih mudah dikerjakan secara bertahap.
