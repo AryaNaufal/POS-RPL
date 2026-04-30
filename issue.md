@@ -1,428 +1,423 @@
-# Issue: Perencanaan Implementasi Export PDF Bertabel pada Dashboard Admin Reports
+# Planning Implementasi Reset Password Pengguna
 
-## Latar Belakang
+## Judul Proyek
+Perancangan Sistem Informasi Point of Sale (POS) pada Toko UMKM untuk Meningkatkan Efektivitas Pengelolaan Transaksi Menggunakan Model SDLC Waterfall
 
-Sistem ini akan dikembangkan menjadi aplikasi Point of Sales (POS) untuk toko. Pada modul laporan admin, user saat ini baru bisa melakukan export ke CSV. Untuk kebutuhan dokumentasi, cetak, dan lampiran laporan, perlu ditambahkan fitur export ke PDF yang memiliki tabel rapi dan mudah dibaca.
+## Tujuan Dokumen
+Dokumen ini menjadi acuan implementasi fitur reset password untuk pengguna pada sistem POS manual login.
 
-Target fitur ada pada halaman:
+Fokusnya adalah:
+- tetap memakai skema auth yang sudah ada
+- menambah alur reset password yang aman dan sederhana
+- membuat tahapan kerja yang jelas untuk junior programmer atau model AI yang lebih murah
 
-- [`src/app/dashboard/admin/reports/page.tsx`](/c:/code/pos-rpl/src/app/dashboard/admin/reports/page.tsx)
-- [`src/components/admin/report-management.tsx`](/c:/code/pos-rpl/src/components/admin/report-management.tsx)
+## Konteks Sistem Saat Ini
+Sistem auth yang dipakai sekarang masih manual, bukan Supabase Auth. Alur yang sudah berjalan:
+- registrasi menulis `password_hash` ke tabel `users`
+- login membaca `password_hash` dari tabel `users`
+- session dibuat dari endpoint login manual
 
-## Kondisi Saat Ini
+File yang paling relevan:
+- [`src/app/api/users/route.ts`](/c:/code/pos-rpl/src/app/api/users/route.ts)
+- [`src/app/api/login/route.ts`](/c:/code/pos-rpl/src/app/api/login/route.ts)
+- [`src/components/auth/auth-card.tsx`](/c:/code/pos-rpl/src/components/auth/auth-card.tsx)
+- [`src/components/auth/auth-form.tsx`](/c:/code/pos-rpl/src/components/auth/auth-form.tsx)
+- [`supabase/migrations/0002_create_manual_users_table.sql`](/c:/code/pos-rpl/supabase/migrations/0002_create_manual_users_table.sql)
 
-Modul laporan admin saat ini memiliki:
+## Masalah Yang Ingin Diselesaikan
+Saat ini pengguna yang lupa password belum punya alur pemulihan akun.
 
-- tab `sales`
-- tab `stocks`
-- filter tanggal untuk laporan `sales`
-- tombol `Export CSV`
+Akibatnya:
+- user harus dibantu manual oleh admin atau developer
+- proses login bisa terhambat
+- pengalaman pengguna kurang baik
 
-Data laporan saat ini berasal dari:
+## Target Fitur
+User dapat:
+1. membuka halaman login
+2. memilih menu `Lupa Password`
+3. memasukkan email akun
+4. menerima tautan reset password
+5. membuka halaman reset password
+6. membuat password baru
+7. login kembali dengan password baru
 
-- `/api/admin/reports/sales`
-- `/api/admin/reports/stocks`
+## Hasil Akhir Yang Diharapkan
+Setelah fitur selesai:
+- pengguna bisa reset password sendiri
+- password lama tidak bisa dipakai lagi setelah reset berhasil
+- token reset hanya berlaku sekali
+- token reset memiliki masa berlaku
+- UI reset password sederhana dan mudah dipahami
 
-Struktur data yang dipakai:
+## Keputusan Teknis Yang Direkomendasikan
+Gunakan flow reset password berbasis token.
 
-- [`src/types/views/report.ts`](/c:/code/pos-rpl/src/types/views/report.ts)
+Alur yang disarankan:
+1. user request reset password dengan email
+2. sistem membuat token reset yang acak dan sulit ditebak
+3. token disimpan di database dengan expiry time
+4. sistem mengirim link reset password ke email user
+5. user membuka link dan memasukkan password baru
+6. sistem memvalidasi token lalu update `password_hash`
+7. token ditandai sudah dipakai
 
-Belum ada:
-
-- tombol `Export PDF`
-- dependency PDF generator
-- formatter khusus untuk tabel PDF
-- template PDF untuk laporan penjualan dan stok
-
-## Tujuan Fitur
-
-Menambahkan fitur export PDF yang:
-
-- bisa dipakai langsung dari halaman `dashboard/admin/reports`
-- menghasilkan file PDF dengan tabel, bukan hanya teks biasa
-- mendukung tab laporan `sales` dan `stocks`
-- memakai judul, periode, dan isi tabel yang jelas
-- cukup sederhana untuk dipelihara oleh junior programmer
-
-## Hasil Akhir yang Diharapkan
-
-User admin dapat:
-
-1. membuka halaman laporan
-2. memilih tab `sales` atau `stocks`
-3. mengatur filter tanggal jika berada di tab `sales`
-4. menekan tombol `Export PDF`
-5. mendapatkan file PDF dengan:
-   - judul laporan
-   - tanggal/periode laporan
-   - tabel isi laporan
-   - ringkasan sederhana jika diperlukan
-
-## Keputusan Teknis yang Direkomendasikan
-
-Supaya implementasi tetap sederhana, gunakan pendekatan client-side PDF generation.
-
-### Rekomendasi library
-
-Gunakan:
-
-- `jspdf`
-- `jspdf-autotable`
-
-Alasan:
-
-- paling umum untuk PDF tabel sederhana
-- cocok untuk junior programmer
-- cukup stabil untuk export dari data tabel yang sudah ada
-- lebih praktis daripada membangun PDF manual dari nol
-
-## Catatan Penting
-
-Jangan membuat export PDF dengan cara screenshot halaman. Hasilnya sulit dirawat dan kualitas tabel biasanya buruk.
-
-Jangan juga mengubah API laporan jika tidak benar-benar perlu. Data yang ada saat ini sudah cukup untuk membuat PDF dasar.
+## Kenapa Flow Ini Dipilih
+- cocok dengan sistem login manual yang sudah ada
+- lebih aman daripada reset password langsung tanpa token
+- mudah dijelaskan dalam dokumen Waterfall
+- bisa dikerjakan bertahap oleh junior programmer
 
 ## Scope Fitur
-
 Fitur ini hanya mencakup:
-
-- export PDF untuk tab `sales`
-- export PDF untuk tab `stocks`
-- tabel PDF yang rapi
-- nama file PDF yang jelas
+- request reset password
+- validasi token reset
+- halaman reset password
+- update password baru
+- invalidasi token lama
 
 Tidak wajib pada issue ini:
+- reset password via admin panel
+- multi-step recovery yang kompleks
+- login via magic link
+- 2FA
+- histori reset password lengkap
 
-- preview PDF di browser sebelum download
-- header PDF dengan logo toko dinamis
-- multi-page layout yang sangat kompleks
-- styling PDF yang terlalu dekoratif
-- export PDF untuk tab laporan lain yang sudah tidak dipakai
+## Struktur Implementasi Yang Disarankan
 
-## Struktur Implementasi yang Disarankan
+### 1. Tabel token reset password
+Tambahkan tabel baru untuk menyimpan token reset.
 
-Supaya mudah dikerjakan, pecah implementasi menjadi bagian berikut:
+Contoh nama tabel:
+- `password_reset_tokens`
 
-### 1. Utility generator PDF laporan
+Kolom yang disarankan:
+- `id`
+- `user_id`
+- `token_hash`
+- `expires_at`
+- `used_at`
+- `created_at`
+
+Catatan:
+- simpan hash token, bukan token mentah
+- token hanya dipakai sekali
+- token harus punya batas waktu
+
+### 2. Endpoint request reset password
+Buat endpoint untuk menerima email user dan membuat token reset.
 
 Contoh file:
-
-- `src/lib/reports/export-report-pdf.ts`
-
-Tanggung jawab:
-
-- menerima tipe laporan
-- menerima data laporan
-- menerima metadata seperti tanggal dan judul
-- membangun dokumen PDF
-- memanggil `autoTable`
-- menyimpan/download file PDF
-
-### 2. Mapping data tabel untuk setiap tab
-
-Contoh helper:
-
-- `buildSalesPdfRows()`
-- `buildStocksPdfRows()`
+- `src/app/api/auth/password-reset/request/route.ts`
 
 Tanggung jawab:
+- validasi email
+- cari user berdasarkan email
+- buat token acak
+- simpan hash token ke database
+- kirim email reset password
 
-- mengubah data mentah menjadi array row yang siap dipakai `jspdf-autotable`
+### 3. Endpoint verifikasi token
+Buat endpoint atau helper untuk mengecek token sebelum user reset password.
 
-### 3. Integrasi UI tombol Export PDF
-
-File utama:
-
-- [`src/components/admin/report-management.tsx`](/c:/code/pos-rpl/src/components/admin/report-management.tsx)
+Contoh file:
+- `src/app/api/auth/password-reset/verify/route.ts`
 
 Tanggung jawab:
+- cek token ada atau tidak
+- cek token belum dipakai
+- cek token belum expired
+- kembalikan status token valid / tidak valid
 
-- menambahkan tombol `Export PDF`
-- memanggil utility PDF
-- disable tombol jika data kosong
-- menampilkan error jika export gagal
+### 4. Endpoint submit password baru
+Buat endpoint untuk menyimpan password baru setelah token valid.
 
-## File yang Kemungkinan Diubah
+Contoh file:
+- `src/app/api/auth/password-reset/confirm/route.ts`
 
-Paling mungkin disentuh:
+Tanggung jawab:
+- validasi token
+- validasi password baru
+- hash password baru
+- update kolom `password_hash` di tabel `users`
+- tandai token sebagai sudah dipakai
 
-- [`src/components/admin/report-management.tsx`](/c:/code/pos-rpl/src/components/admin/report-management.tsx)
-- [`src/types/views/report.ts`](/c:/code/pos-rpl/src/types/views/report.ts) jika butuh type tambahan
-- `src/lib/reports/export-report-pdf.ts`
-- `package.json`
-- `package-lock.json`
+### 5. Halaman request reset password
+Buat halaman form untuk user memasukkan email.
 
-Jika ingin lebih rapi, boleh juga membuat:
+Contoh file:
+- `src/app/reset-password/page.tsx`
 
-- `src/lib/reports/report-pdf-formatters.ts`
+Tanggung jawab:
+- form input email
+- tombol kirim link reset
+- tampilkan pesan sukses atau error
+- tidak membuka informasi sensitif tentang apakah email terdaftar atau tidak
+
+### 6. Halaman reset password
+Buat halaman untuk password baru setelah user klik link email.
+
+Contoh file:
+- `src/app/reset-password/[token]/page.tsx`
+
+Tanggung jawab:
+- ambil token dari URL
+- validasi token
+- tampilkan form password baru dan konfirmasi password
+- kirim password baru ke endpoint confirm
+
+### 7. Komponen UI auth
+Tambahkan akses ke fitur reset password dari halaman login.
+
+Contoh file:
+- [`src/components/auth/auth-card.tsx`](/c:/code/pos-rpl/src/components/auth/auth-card.tsx)
+- [`src/components/auth/auth-form.tsx`](/c:/code/pos-rpl/src/components/auth/auth-form.tsx)
+
+Tanggung jawab:
+- tampilkan link `Lupa Password`
+- arahkan user ke halaman request reset password
+- jaga agar flow login tetap sederhana
+
+### 8. Pengiriman email
+Buat mekanisme pengiriman email reset password.
+
+Rekomendasi:
+- gunakan SMTP atau provider email yang mudah dipakai
+- pisahkan logic email ke helper khusus
+
+Contoh file:
+- `src/lib/email/send-password-reset.ts`
+
+Tanggung jawab:
+- membangun URL reset password
+- mengirim email berisi link reset
+- menangani error pengiriman
 
 ## Tahapan Implementasi
 
-### 1. Audit modul report yang sudah ada
-
-Baca file berikut:
-
-- [`src/components/admin/report-management.tsx`](/c:/code/pos-rpl/src/components/admin/report-management.tsx)
-- [`src/types/views/report.ts`](/c:/code/pos-rpl/src/types/views/report.ts)
-
-Tujuan audit:
-
-- mengetahui tab aktif yang tersedia
-- mengetahui struktur data `sales` dan `stocks`
-- mengetahui logic `Export CSV` yang sudah ada
-
-Output:
-
-- implementor paham titik integrasi tombol `Export PDF`
-
-### 2. Pilih library PDF dan pasang dependency
-
-Pasang dependency:
-
-- `jspdf`
-- `jspdf-autotable`
-
-Catatan:
-
-- gunakan satu pendekatan saja
-- jangan campur banyak library PDF
-
-Output:
-
-- proyek punya dependency resmi untuk export PDF
-
-### 3. Buat utility export PDF terpisah
-
-Buat utility khusus agar logic PDF tidak ditaruh langsung di komponen React.
-
-Contoh fungsi:
-
-- `exportReportPdf({ type, data, dateFrom, dateTo })`
-
-Isi fungsi minimal:
-
-- buat instance `jsPDF`
-- buat judul laporan
-- tampilkan metadata periode
-- generate tabel memakai `autoTable`
-- simpan file PDF
-
-Output:
-
-- logic export terisolasi dan reusable
-
-### 4. Tentukan format PDF untuk tab sales
-
-Untuk tab `sales`, tabel PDF minimal memiliki kolom:
-
-- tanggal
-- qty nota
-- qty produk
-- total omzet
-
-Di atas tabel, tampilkan:
-
-- judul: `Laporan Penjualan`
-- periode: `dateFrom - dateTo`
-
-Opsional tetapi direkomendasikan:
-
-- ringkasan total penjualan
-- total transaksi
-- total item terjual
-
-Output:
-
-- format PDF sales jelas dan stabil
-
-### 5. Tentukan format PDF untuk tab stocks
-
-Untuk tab `stocks`, tabel PDF minimal memiliki kolom:
-
-- nama produk
-- SKU
-- store
-- qty stok
-- nilai aset
-
-Di atas tabel, tampilkan:
-
-- judul: `Laporan Stok`
-- tanggal export
-
-Catatan:
-
-- tab stok saat ini tidak memakai filter tanggal, jadi cukup tampilkan tanggal export atau label `snapshot`
-
-Output:
-
-- format PDF stocks jelas dan mudah dipahami
-
-### 6. Buat mapper data ke row PDF
-
-Jangan langsung kirim object mentah dari API ke `autoTable`.
-
-Buat mapper yang mengubah data ke bentuk sederhana:
-
-- array header
-- array body row
-
-Contoh untuk `sales`:
-
-- `["Tanggal", "Qty Nota", "Qty Produk", "Total Omzet"]`
-
-Contoh untuk `stocks`:
-
-- `["Produk", "SKU", "Store", "Stok", "Nilai Aset"]`
-
-Output:
-
-- struktur data PDF lebih aman dan mudah diuji
-
-### 7. Integrasikan tombol Export PDF ke UI laporan
-
-Di `report-management.tsx`, tambahkan tombol baru:
-
-- `Export PDF`
-
-Aturan UI:
-
-- tampil di dekat tombol `Export CSV`
-- disable jika `data.length === 0`
-- gunakan style yang konsisten dengan tombol lain
-
-Output:
-
-- user punya aksi export PDF yang jelas
-
-### 8. Tambahkan penanganan error saat export
-
-Jika generator PDF gagal:
-
-- tampilkan pesan error sederhana
-- jangan membuat halaman crash
-
-Contoh pesan:
-
-- `Gagal membuat file PDF`
-
-Output:
-
-- fitur export lebih aman dipakai
-
-### 9. Tentukan nama file PDF
-
-Gunakan nama file yang jelas dan konsisten.
-
-Contoh:
-
-- `report-sales-2026-04-01-to-2026-04-18.pdf`
-- `report-stocks-2026-04-18.pdf`
-
-Output:
-
-- file hasil export mudah diidentifikasi user
-
-### 10. Rapikan tampilan tabel PDF
-
-Minimal atur:
-
-- ukuran font
-- padding sel
-- warna header tabel
-- alignment kolom angka ke kanan
-- pemotongan teks panjang bila perlu
-
-Jangan terlalu banyak styling. Fokus utama:
-
-- terbaca
-- rapi
-- konsisten
-
-Output:
-
-- PDF terlihat profesional walau sederhana
-
-### 11. Uji manual untuk dua tab laporan
-
-Skenario minimal:
-
-1. Buka tab `sales`
-2. Atur filter tanggal
-3. Klik `Export PDF`
-4. Pastikan file terunduh
-5. Buka PDF dan cek tabel penjualan
-6. Pindah ke tab `stocks`
-7. Klik `Export PDF`
-8. Pastikan file terunduh
-9. Buka PDF dan cek tabel stok
-10. Coba export saat data kosong
-
-Output:
-
-- fitur terbukti berjalan pada semua tab aktif
-
-## Acceptance Criteria
-
-Fitur dianggap selesai jika:
-
-1. Halaman `dashboard/admin/reports` memiliki tombol `Export PDF`.
-2. Tombol `Export PDF` bekerja untuk tab `sales`.
-3. Tombol `Export PDF` bekerja untuk tab `stocks`.
-4. File PDF berisi tabel, bukan hanya teks polos.
-5. PDF menampilkan judul laporan yang sesuai.
-6. PDF `sales` menampilkan periode filter tanggal.
-7. PDF `stocks` menampilkan data stok yang relevan.
-8. Tombol disable saat tidak ada data.
-9. Export PDF tidak merusak fitur `Export CSV` yang sudah ada.
-
-## Checklist Implementasi
-
-- [ ] Audit modul report selesai
-- [ ] Dependency `jspdf` dipasang
-- [ ] Dependency `jspdf-autotable` dipasang
-- [ ] Utility export PDF dibuat
-- [ ] Formatter data `sales` dibuat
-- [ ] Formatter data `stocks` dibuat
-- [ ] Tombol `Export PDF` ditambahkan
-- [ ] Error handling export ditambahkan
-- [ ] Nama file PDF dibuat konsisten
-- [ ] Testing manual tab `sales` selesai
-- [ ] Testing manual tab `stocks` selesai
-
-## Pembagian Task Kecil yang Direkomendasikan
-
-Agar aman untuk junior programmer atau model AI murah, pecah issue menjadi task kecil:
-
-1. Audit report-management dan struktur data report
-2. Pasang dependency PDF
-3. Buat utility export PDF dasar
-4. Implementasikan PDF untuk tab `sales`
-5. Implementasikan PDF untuk tab `stocks`
-6. Tambahkan tombol `Export PDF` ke UI
-7. Uji manual hasil PDF
-
-## Instruksi Singkat untuk Junior Programmer / AI Murah
-
-Kerjakan berurutan seperti ini:
-
-1. Baca `src/components/admin/report-management.tsx`
-2. Baca `src/types/views/report.ts`
-3. Pasang `jspdf` dan `jspdf-autotable`
-4. Buat helper export PDF terpisah
-5. Buat format tabel PDF untuk `sales`
-6. Buat format tabel PDF untuk `stocks`
-7. Tambahkan tombol `Export PDF`
-8. Tes hasil file PDF untuk kedua tab
-
-## Hal yang Tidak Boleh Dilakukan
-
-- jangan mengganti API laporan tanpa alasan kuat
-- jangan membuat PDF dengan screenshot halaman
-- jangan menaruh semua logic PDF langsung di komponen React
-- jangan merusak `Export CSV` yang sudah ada
-- jangan menambah scope ke preview PDF atau desain report kompleks jika belum diminta
-
-## Ringkasan
-
-Issue ini fokus pada penambahan export PDF bertabel untuk modul laporan admin. Implementasi terbaik untuk repo ini adalah menambahkan generator PDF client-side yang sederhana, memanfaatkan data report yang sudah ada, dan mengintegrasikannya ke `report-management` tanpa mengubah flow laporan yang sekarang.
+### 1. Audit auth manual yang sudah ada
+Tujuan: memahami alur login dan registrasi sebelum menambah reset password.
+
+#### File yang dibaca
+- [`src/app/api/login/route.ts`](/c:/code/pos-rpl/src/app/api/login/route.ts)
+- [`src/app/api/users/route.ts`](/c:/code/pos-rpl/src/app/api/users/route.ts)
+- [`src/components/auth/auth-card.tsx`](/c:/code/pos-rpl/src/components/auth/auth-card.tsx)
+- [`src/components/auth/auth-form.tsx`](/c:/code/pos-rpl/src/components/auth/auth-form.tsx)
+
+#### Yang harus dipahami
+- password disimpan dalam format hash
+- login mencocokkan password terhadap hash
+- register membuat hash baru
+- session dibuat setelah login berhasil
+
+#### Output
+- implementor tahu titik integrasi reset password
+
+### 2. Tentukan flow reset password final
+Tujuan: jangan coding sebelum alur final disepakati.
+
+#### Flow yang disarankan
+1. user klik `Lupa Password`
+2. user isi email
+3. sistem kirim tautan reset
+4. user buka tautan
+5. user isi password baru
+6. sistem update password
+7. user login kembali
+
+#### Output
+- flow final jelas dan tidak berubah-ubah
+
+### 3. Tambahkan migration token reset password
+Tujuan: database punya tempat yang aman untuk menyimpan token reset.
+
+#### Task
+- buat tabel `password_reset_tokens`
+- tambahkan index untuk `user_id` dan `expires_at`
+- simpan `token_hash`, bukan token mentah
+- sediakan kolom `used_at`
+
+#### Acceptance Criteria
+- token reset bisa disimpan
+- token reset bisa dicek masa berlakunya
+- token reset bisa ditandai sudah dipakai
+
+### 4. Buat endpoint request reset password
+Tujuan: user bisa meminta reset password memakai email.
+
+#### Task
+- validasi email
+- cari user berdasarkan email
+- buat token acak yang kuat
+- simpan hash token ke database
+- kirim email reset password
+
+#### Catatan Penting
+- jangan mengembalikan pesan yang membocorkan email terdaftar atau tidak
+- response untuk frontend sebaiknya generik
+
+#### Acceptance Criteria
+- request reset password berhasil diproses
+- token tersimpan
+- email reset terkirim
+
+### 5. Buat halaman request reset password
+Tujuan: user punya UI untuk meminta reset password.
+
+#### Task
+- buat form input email
+- buat tombol kirim link reset
+- tampilkan feedback sukses / gagal
+- tambahkan link kembali ke login
+
+#### Acceptance Criteria
+- user dapat request reset password dari UI
+- halaman sederhana dan mudah dipahami
+
+### 6. Buat halaman reset password
+Tujuan: user bisa mengisi password baru dari link email.
+
+#### Task
+- ambil token dari URL
+- cek validasi token
+- tampilkan form password baru
+- tampilkan konfirmasi password
+- kirim password baru ke endpoint confirm
+
+#### Acceptance Criteria
+- password baru dapat disimpan
+- token tidak bisa dipakai dua kali
+
+### 7. Buat endpoint confirm reset password
+Tujuan: password lama benar-benar diganti dengan password baru.
+
+#### Task
+- validasi token
+- cek expired
+- cek token belum dipakai
+- validasi password baru
+- hash password baru
+- update `users.password_hash`
+- set token sebagai `used`
+
+#### Acceptance Criteria
+- password lama tidak berlaku lagi
+- login memakai password baru berhasil
+
+### 8. Tambahkan validasi keamanan
+Tujuan: fitur reset password tidak mudah disalahgunakan.
+
+#### Task
+- token hanya berlaku sekali
+- token punya masa berlaku
+- password baru minimal panjang aman
+- rate limit request reset jika memungkinkan
+- jangan bocorkan keberadaan email
+
+#### Acceptance Criteria
+- token tidak bisa diulang
+- request spam lebih sulit
+
+### 9. Integrasikan ke UI auth
+Tujuan: user bisa menemukan fitur reset password dengan mudah.
+
+#### Task
+- tambahkan link `Lupa Password`
+- arahkan ke halaman request reset password
+- pastikan desain selaras dengan halaman login/register
+
+#### Acceptance Criteria
+- flow reset password mudah ditemukan dari login
+
+### 10. Uji manual end-to-end
+Tujuan: memastikan alur bekerja dari awal sampai akhir.
+
+#### Skenario Uji
+1. buka login
+2. klik `Lupa Password`
+3. isi email
+4. pastikan request berhasil
+5. buka link reset
+6. isi password baru
+7. submit password baru
+8. login dengan password baru
+9. login dengan password lama harus gagal
+
+#### Output
+- fitur reset password terbukti berjalan penuh
+
+## Urutan Implementasi Teknis
+Urutan ini penting agar implementor tidak bingung:
+1. audit auth manual
+2. migration token reset
+3. endpoint request reset
+4. halaman request reset
+5. halaman reset password
+6. endpoint confirm reset
+7. validasi keamanan
+8. integrasi UI auth
+9. testing manual
+
+## Pembagian Task Untuk Junior Programmer / AI Murah
+Setiap task harus kecil dan jelas.
+
+### Format Task Yang Disarankan
+- tujuan
+- file yang akan diubah
+- tabel yang dipakai
+- endpoint yang dibuat atau diubah
+- input/output
+- langkah uji manual
+
+### Contoh Task Yang Baik
+- buat tabel token reset password
+- buat endpoint request reset password
+- buat halaman reset password
+
+### Contoh Task Yang Terlalu Besar
+- buat fitur auth lengkap
+- buat seluruh keamanan login
+- perbaiki semua halaman user
+
+## Daftar Issue Kecil Yang Direkomendasikan
+Issue berikut bisa diberikan satu per satu ke implementor:
+1. Audit alur auth manual yang sudah ada
+2. Buat migration token reset password
+3. Buat endpoint request reset password
+4. Buat halaman request reset password
+5. Buat endpoint verifikasi token
+6. Buat halaman reset password
+7. Buat endpoint confirm reset password
+8. Tambahkan link reset password di halaman login
+9. Tambahkan validasi keamanan token
+10. Uji manual reset password end-to-end
+
+## Skenario Uji Manual Minimal
+- user bisa membuka halaman request reset password
+- user bisa mengirim permintaan reset password
+- token reset tersimpan di database
+- user bisa membuka link reset dari email
+- user bisa mengisi password baru
+- password lama tidak bisa dipakai lagi
+- password baru bisa dipakai untuk login
+
+## Definition of Done
+Satu issue dianggap selesai jika:
+- fitur utama berjalan
+- validasi dasar ada
+- data tersimpan benar di database
+- UI dapat dipakai
+- tidak membuka celah keamanan yang jelas
+- ada langkah uji manual
+
+## Catatan Penting Untuk Implementor
+- jangan mengubah mekanisme login manual yang sudah ada tanpa alasan kuat
+- jangan simpan token reset dalam bentuk mentah
+- jangan bocorkan apakah email terdaftar atau tidak
+- jangan membiarkan token berlaku terlalu lama
+- jangan lupa invalidate token setelah dipakai
+
+## Penutup
+Target terbaik untuk fitur ini adalah reset password yang sederhana, aman, dan cocok dengan sistem login manual yang sudah ada.
+
+Jika seluruh scope dokumen ini selesai, user akan bisa memulihkan akses akun tanpa bantuan manual dari admin atau developer.

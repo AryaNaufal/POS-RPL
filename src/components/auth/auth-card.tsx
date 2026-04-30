@@ -2,6 +2,7 @@
 
 import { FormEvent, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -74,9 +75,15 @@ export function AuthCard({ userEmail }: { userEmail?: string | null }) {
       const body = (await response.json().catch(() => null)) as ApiSuccess<any> | ApiError | null;
 
       if (!response.ok) {
+        const errorMessage =
+          body && "message" in body
+            ? String(body.message ?? "")
+            : body && "error" in body
+              ? String(body.error ?? "")
+              : "Terjadi kesalahan. Coba lagi.";
         setStatus({
           type: "error",
-          message: body?.message ?? body?.error ?? "Terjadi kesalahan. Coba lagi.",
+          message: errorMessage,
         });
         return;
       }
@@ -254,6 +261,16 @@ export function AuthCard({ userEmail }: { userEmail?: string | null }) {
                 ? "Gunakan password akun yang sudah terdaftar."
                 : "Minimal 6 karakter untuk keamanan akun."}
             </p>
+            {mode === "login" ? (
+              <p className="text-right text-xs">
+                <Link
+                  href="/reset-password"
+                  className="font-semibold text-foreground underline underline-offset-4 hover:text-primary"
+                >
+                  Lupa Password?
+                </Link>
+              </p>
+            ) : null}
           </div>
 
           {status ? (
